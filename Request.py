@@ -175,35 +175,58 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(output_format, history, filter_code, output_filename):
+def file_generator(output_format, history, filter_code, sort, output_filename):
     if output_format == "XML":
-        time = etree.Element("time")
-        time.set("value", str(datetime.datetime.now()))
-        for log in history:
-            if history[log]["status_code"] not in filter_code:
-                locate = etree.SubElement(time, "locate")
-                locate.set("value", log)
-                parent_url = etree.SubElement(locate, "parent_url")
-                parent_url.set("value", str(history[log]["parent_url"]))
-                link_url = etree.SubElement(locate, "link_url")
-                link_url.set("value", str(history[log]["link_url"]))
-                current_url = etree.SubElement(locate, "current_url")
-                current_url.set("value", str(history[log]["current_url"]))
-#                link_name = etree.SubElement(locate, "link_name")
-#                link_name.set("value", str(history[log]["link_name"]))
-                status_code = etree.SubElement(locate, "status_code")
-                status_code.set("value", str(history[log]["status_code"]))
-                time_cost = etree.SubElement(locate, "time_cost")
-                time_cost.set("value", str(history[log]["time_cost"]))
-                reason = etree.SubElement(locate, "reason")
-                reason.set("value", str(history[log]["reason"]))
-        tree = etree.ElementTree(time)
-        tree.write(output_filename+".xml", pretty_print=True)
-    elif output_format == "JSON":
-        f = open(output_filename+".json", "w")
-        f.write(history)
-        f.close()
+        if sort == "URL":
+            time = etree.Element("time")
+            time.set("value", str(datetime.datetime.now()))
+            for log in history:
+                if history[log]["status_code"] not in filter_code:
+                    locate = etree.SubElement(time, "locate")
+                    locate.set("value", log)
+                    parent_url = etree.SubElement(locate, "parent_url")
+                    parent_url.set("value", str(history[log]["parent_url"]))
+                    link_url = etree.SubElement(locate, "link_url")
+                    link_url.set("value", str(history[log]["link_url"]))
+                    current_url = etree.SubElement(locate, "current_url")
+                    current_url.set("value", str(history[log]["current_url"]))
+#                    link_name = etree.SubElement(locate, "link_name")
+#                    link_name.set("value", str(history[log]["link_name"]))
+                    status_code = etree.SubElement(locate, "status_code")
+                    status_code.set("value", str(history[log]["status_code"]))
+                    time_cost = etree.SubElement(locate, "time_cost")
+                    time_cost.set("value", str(history[log]["time_cost"]))
+                    reason = etree.SubElement(locate, "reason")
+                    reason.set("value", str(history[log]["reason"]))
+            tree = etree.ElementTree(time)
+            tree.write(output_filename+".xml", pretty_print=True)
+        elif sort == "STATUS_CODE":
+            sort_by_status = sorted(history.itervalues(), key=lambda x : x["status_code"])
+            time = etree.Element("time")
+            time.set("value", str(datetime.datetime.now()))
+            for log in sort_by_status:
+                if log["status_code"] not in filter_code:
+                    locate = etree.SubElement(time, "locate")
+                    locate.set("value", log["link_url"])
+                    parent_url = etree.SubElement(locate, "parent_url")
+                    parent_url.set("value", str(log["parent_url"]))
+                    link_url = etree.SubElement(locate, "link_url")
+                    link_url.set("value", str(log["link_url"]))
+                    current_url = etree.SubElement(locate, "current_url")
+                    current_url.set("value", str(log["current_url"]))
+#                    link_name = etree.SubElement(locate, "link_name")
+#                    link_name.set("value", str(log["link_name"]))
+                    status_code = etree.SubElement(locate, "status_code")
+                    status_code.set("value", str(log["status_code"]))
+                    time_cost = etree.SubElement(locate, "time_cost")
+                    time_cost.set("value", str(log["time_cost"]))
+                    reason = etree.SubElement(locate, "reason")
+                    reason.set("value", str(log["reason"]))
+            tree = etree.ElementTree(time)
+            tree.write(output_filename+".xml", pretty_print=True)
 
+    elif output_format == "JSON":
+        print "Not implement"
 """
 Main function
 """
@@ -221,7 +244,7 @@ def main():
     source = authenticate(session, target_url, payload)
     linktexts = find_linktexts(source)
     navigate(session, target_url_pattern, target_url, linktexts, history, filter_code, timeout=timeout, depth=depth-1)
-    file_generator(output_format, history, filter_code, output_filename)
+    file_generator(output_format, history, filter_code, sort, output_filename)
     total_end_time = datetime.datetime.now()
     print "Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n"
     session.close()
