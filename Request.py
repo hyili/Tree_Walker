@@ -16,22 +16,23 @@ from lxml import etree
 """
 Load user and password from file
 """
-def load_conf(filename):
+def load_conf(filename, tag):
     conf = ConfigParser.ConfigParser()
     conf.read(filename)
     conf.sections()
     try:
-        user = conf.get("PROFILE", "USER")
-        password = conf.get("PROFILE", "PASS")
-        depth = int(conf.get("PROFILE", "DEPTH"))
-        timeout = int(conf.get("PROFILE", "TIMEOUT"))
-        target_url = conf.get("PROFILE", "TARGET_URL")
-        target_url_pattern = conf.get("PROFILE", "TARGET_URL_PATTERN")
-        filter_pattern = conf.get("PROFILE", "FILTER")
-        output_format = conf.get("PROFILE", "FORMAT")
-        output_filename = conf.get("PROFILE", "FILENAME")
-        sort = conf.get("PROFILE", "SORT")
-        return (user, password, depth, timeout, target_url, target_url_pattern, filter_pattern, output_format, output_filename, sort)
+        auth = conf.get(tag, "AUTH")
+        user = conf.get(tag, "USER")
+        password = conf.get(tag, "PASS")
+        depth = int(conf.get(tag, "DEPTH"))
+        timeout = int(conf.get(tag, "TIMEOUT"))
+        target_url = conf.get(tag, "TARGET_URL")
+        target_url_pattern = conf.get(tag, "TARGET_URL_PATTERN")
+        filter_pattern = conf.get(tag, "FILTER")
+        output_format = conf.get(tag, "FORMAT")
+        output_filename = conf.get(tag, "FILENAME")
+        sort = conf.get(tag, "SORT")
+        return {"AUTH": auth, "USER": user, "PASS": password, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_pattern, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
     except:
         print "No login profile found."
         quit()
@@ -50,9 +51,12 @@ def navigate(session, target_url_pattern, current_url, linktexts, history, filte
         log = str((sub_url+" "+linktext[3]).encode("utf-8"))
 
         if sub_url in history:
+            if current_url not in history[sub_url]["parent_url"]:
+                history[sub_url]["parent_url"].append(current_url)
+                history[sub_url]["link_name"].append(linktext[3])
             continue
         else:
-            history[sub_url] = {"parent_url": current_url, "link_url": sub_url, "current_url": "", "link_name": linktext[3], "status_code": -1, "time_cost": -1, "reason": ""}
+            history[sub_url] = {"parent_url": [current_url], "link_name": [linktext[3]], "link_url": sub_url, "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
         try:
             start_time = datetime.datetime.now()
@@ -100,6 +104,8 @@ def navigate(session, target_url_pattern, current_url, linktexts, history, filte
         except requests.exceptions.InvalidSchema as e:
             history[sub_url]["status_code"] = -6
             history[sub_url]["reason"] = e
+            # not record
+            del history[sub_url]
             continue
         except e:
             history[sub_url]["status_code"] = -7
@@ -186,7 +192,7 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log)
                     parent_url = etree.SubElement(locate, "parent_url")
-                    parent_url.set("value", history[log]["parent_url"])
+                    parent_url.set("value", str(history[log]["parent_url"]))
                     link_url = etree.SubElement(locate, "link_url")
                     link_url.set("value", history[log]["link_url"])
                     current_url = etree.SubElement(locate, "current_url")
@@ -210,7 +216,7 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log["link_url"])
                     parent_url = etree.SubElement(locate, "parent_url")
-                    parent_url.set("value", log["parent_url"])
+                    parent_url.set("value", str(log["parent_url"]))
                     link_url = etree.SubElement(locate, "link_url")
                     link_url.set("value", log["link_url"])
                     current_url = etree.SubElement(locate, "current_url")
@@ -228,27 +234,3 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
 
     elif output_format == "JSON":
         print "Not implement"
-"""
-Main function
-"""
-def main():
-    (user, password, depth, timeout, target_url, target_url_pattern, filter_pattern, output_format, output_filename, sort) = load_conf(".requests.conf")
-    filter_code = [int(i) for i in filter_pattern.split(",")]
-    payload = {"target": target_url, "USER": user, "PASSWORD": password}
-    history = {}
-    session = requests.Session()
-
-    print "************************************************************"
-    print target_url
-    print "************************************************************"
-    total_start_time = datetime.datetime.now()
-    source = authenticate(session, target_url, payload)
-    linktexts = find_linktexts(source)
-    navigate(session, target_url_pattern, target_url, linktexts, history, filter_code, timeout=timeout, depth=depth-1)
-    file_generator(output_format, history, filter_code, sort, output_filename)
-    total_end_time = datetime.datetime.now()
-    print "Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n"
-    session.close()
-
-if __name__ == "__main__":
-    main()
