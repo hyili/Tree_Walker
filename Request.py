@@ -22,18 +22,22 @@ def load_conf(filename, tag):
     conf.sections()
     try:
         auth = conf.get(tag, "AUTH")
-        user = conf.get(tag, "USER")
-        password = conf.get(tag, "PASS")
+        target_url = conf.get(tag, "TARGET_URL")
+        if auth == "YES":
+            user = conf.get(tag, "USER")
+            password = conf.get(tag, "PASS")
+            payload = {"target": conf["TARGET_URL"], "USER": user, "PASSWORD": password}
+        else:
+            payload = {"target": conf["TARGET_URL"]}
         depth = int(conf.get(tag, "DEPTH"))
         timeout = int(conf.get(tag, "TIMEOUT"))
-        target_url = conf.get(tag, "TARGET_URL")
         target_url_pattern = conf.get(tag, "TARGET_URL_PATTERN")
         filter_pattern = conf.get(tag, "FILTER")
         filter_code = [int(i) for i in filter_pattern.split(",")]
         output_format = conf.get(tag, "FORMAT")
         output_filename = conf.get(tag, "FILENAME")
         sort = conf.get(tag, "SORT")
-        return {"AUTH": auth, "USER": user, "PASS": password, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
+        return {"AUTH": auth, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
     except:
         print "No login profile found."
         quit()

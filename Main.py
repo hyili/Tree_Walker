@@ -8,14 +8,13 @@ Main function
 """
 def main():
     conf = Request.load_conf(filename=".requests.conf", tag="PROFILE")
-    payload = {"target": conf["TARGET_URL"], "USER": conf["USER"], "PASSWORD": conf["PASS"]}
     total_start_time = Request.datetime.datetime.now()
     session = Request.requests.Session()
 
     print "************************************************************"
     print conf["TARGET_URL"]
     print "************************************************************"
-    source = Request.authenticate(session=session, payload=payload, target_url=conf["TARGET_URL"], auth=conf["AUTH"])
+    source = Request.authenticate(session=session, payload=conf["payload"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
     linktexts = Request.find_linktexts(source=source)
     if conf["DEPTH"] > 0:
         history = Request.navigate(session=session, linktexts=linktexts, current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], filter_code=conf["FILTER"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"])
