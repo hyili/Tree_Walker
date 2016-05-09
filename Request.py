@@ -29,10 +29,11 @@ def load_conf(filename, tag):
         target_url = conf.get(tag, "TARGET_URL")
         target_url_pattern = conf.get(tag, "TARGET_URL_PATTERN")
         filter_pattern = conf.get(tag, "FILTER")
+        filter_code = [int(i) for i in filter_pattern.split(",")]
         output_format = conf.get(tag, "FORMAT")
         output_filename = conf.get(tag, "FILENAME")
         sort = conf.get(tag, "SORT")
-        return {"AUTH": auth, "USER": user, "PASS": password, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_pattern, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
+        return {"AUTH": auth, "USER": user, "PASS": password, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
     except:
         print "No login profile found."
         quit()
@@ -40,10 +41,12 @@ def load_conf(filename, tag):
 """
 Navigate into the target website
 """
-def navigate(session, target_url_pattern, current_url, linktexts, history, filter_code, timeout=5, depth=1):
+def navigate(session, target_url_pattern, current_url, linktexts, filter_code, history={}, timeout=5, depth=0):
     links = []
     total_linktexts = len(linktexts)
+    depth -= 1
     counter = 1
+
     for linktext in linktexts:
         sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
         counter += 1
@@ -107,25 +110,27 @@ def navigate(session, target_url_pattern, current_url, linktexts, history, filte
             # not record
             del history[sub_url]
             continue
-        except e:
+        except:
             history[sub_url]["status_code"] = -7
-            history[sub_url]["reason"] = e
+            history[sub_url]["reason"] = "Unknown problem\n"
             print log
             print "Unknown problem\n"
             continue
 
         print "Time costs: "+str(history[sub_url]["time_cost"])+"sec\n"
 
-    if depth is 0:
-        return
+    if depth <= 0:
+        return history
 
     for link in links:
         sub_url = link[0]
-        sub_linktexts = find_linktexts(link[1])
+        sub_linktexts = find_linktexts(source=link[1])
         print "************************************************************"
         print sub_url
         print "************************************************************"
-        navigate(session, target_url_pattern, sub_url, sub_linktexts, history, filter_code, timeout=timeout, depth=depth-1)
+        navigate(session=session, linktexts=sub_linktexts, history=history, current_url=sub_url, target_url_pattern=target_url_pattern, filter_code=filter_code, timeout=timeout, depth=depth)
+
+    return history
 
 """
 Reformat url
@@ -147,10 +152,11 @@ def factor_url(current_url, sub_url):
 Will be forwarded to another authentication page
 Then, login with payload information
 """
-def authenticate(session, target_url, payload):
+def authenticate(session, target_url, payload, auth):
     try:
         r = session.post(target_url)
-        r = session.post(r.url, data=payload)
+        if auth == "YES":
+            r = session.post(r.url, data=payload)
     except KeyboardInterrupt:
         print "Bye~ Bye~\n"
         quit()
@@ -168,6 +174,8 @@ def authenticate(session, target_url, payload):
         quit()
     except requests.exceptions.InvalidSchema as e:
         print str(e)
+        quit()
+    except:
         quit()
 
     return r.text
@@ -197,8 +205,6 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
                     link_url.set("value", history[log]["link_url"])
                     current_url = etree.SubElement(locate, "current_url")
                     current_url.set("value", history[log]["current_url"])
-#                    link_name = etree.SubElement(locate, "link_name")
-#                    link_name.set("value", history[log]["link_name"])
                     status_code = etree.SubElement(locate, "status_code")
                     status_code.set("value", str(history[log]["status_code"]))
                     time_cost = etree.SubElement(locate, "time_cost")
@@ -221,8 +227,6 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
                     link_url.set("value", log["link_url"])
                     current_url = etree.SubElement(locate, "current_url")
                     current_url.set("value", log["current_url"])
-#                    link_name = etree.SubElement(locate, "link_name")
-#                    link_name.set("value", log["link_name"])
                     status_code = etree.SubElement(locate, "status_code")
                     status_code.set("value", str(log["status_code"]))
                     time_cost = etree.SubElement(locate, "time_cost")
