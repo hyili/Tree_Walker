@@ -14,7 +14,7 @@ def main():
     print "************************************************************"
     print conf["TARGET_URL"]
     print "************************************************************"
-    source = Request.authenticate(session=session, payload=conf["payload"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
+    source = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
     linktexts = Request.find_linktexts(source=source)
     if conf["DEPTH"] > 0:
         history = Request.navigate(session=session, linktexts=linktexts, current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], filter_code=conf["FILTER"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"])

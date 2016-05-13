@@ -12,6 +12,7 @@ import ConfigParser
 import datetime
 import sys
 from lxml import etree
+import csv
 
 """
 Load user and password from file
@@ -26,9 +27,9 @@ def load_conf(filename, tag):
         if auth == "YES":
             user = conf.get(tag, "USER")
             password = conf.get(tag, "PASS")
-            payload = {"target": conf["TARGET_URL"], "USER": user, "PASSWORD": password}
+            payload = {"target": target_url, "USER": user, "PASSWORD": password}
         else:
-            payload = {"target": conf["TARGET_URL"]}
+            payload = {"target": target_url}
         depth = int(conf.get(tag, "DEPTH"))
         timeout = int(conf.get(tag, "TIMEOUT"))
         target_url_pattern = conf.get(tag, "TARGET_URL_PATTERN")
@@ -59,11 +60,10 @@ def navigate(session, target_url_pattern, current_url, linktexts, filter_code, h
 
         if sub_url in history:
             if current_url not in history[sub_url]["parent_url"]:
-                history[sub_url]["parent_url"].append(current_url)
-                history[sub_url]["link_name"].append(linktext[3])
+                history[sub_url]["parent_url"].append(str(current_url.encode("utf-8")))
             continue
         else:
-            history[sub_url] = {"parent_url": [current_url], "link_name": [linktext[3]], "link_url": sub_url, "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
+            history[sub_url] = {"parent_url": [str(current_url.encode("utf-8"))], "link_url": str(sub_url.encode("utf-8")), "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
         try:
             start_time = datetime.datetime.now()
@@ -73,7 +73,7 @@ def navigate(session, target_url_pattern, current_url, linktexts, filter_code, h
 
             history[sub_url]["time_cost"] = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
             history[sub_url]["status_code"] = r.status_code
-            history[sub_url]["current_url"] = r.url
+            history[sub_url]["current_url"] = str(r.url.encode("utf-8"))
             if r.status_code in filter_code:
                 if bool(re.search(target_url_pattern, r.url)):
                     links.append((r.url, r.text))
@@ -194,27 +194,30 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(output_format, history, filter_code, sort, output_filename):
+def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CODE", output_filename="default"):
     if output_format == "XML":
         if sort == "URL":
             time = etree.Element("time")
-            time.set("value", str(datetime.datetime.now()))
+            time.set("value", str(datetime.datetime.now().encode("utf-8")))
             for log in history:
                 if history[log]["status_code"] not in filter_code:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log)
-                    parent_url = etree.SubElement(locate, "parent_url")
-                    parent_url.set("value", str(history[log]["parent_url"]))
-                    link_url = etree.SubElement(locate, "link_url")
-                    link_url.set("value", history[log]["link_url"])
-                    current_url = etree.SubElement(locate, "current_url")
-                    current_url.set("value", history[log]["current_url"])
-                    status_code = etree.SubElement(locate, "status_code")
-                    status_code.set("value", str(history[log]["status_code"]))
-                    time_cost = etree.SubElement(locate, "time_cost")
-                    time_cost.set("value", str(history[log]["time_cost"]))
-                    reason = etree.SubElement(locate, "reason")
-                    reason.set("value", str(history[log]["reason"]))
+                    try:
+                        parent_url = etree.SubElement(locate, "parent_url")
+                        parent_url.set("value", str(history[log]["parent_url"]))
+                        link_url = etree.SubElement(locate, "link_url")
+                        link_url.set("value", str(history[log]["link_url"]))
+                        current_url = etree.SubElement(locate, "current_url")
+                        current_url.set("value", str(history[log]["current_url"]))
+                        status_code = etree.SubElement(locate, "status_code")
+                        status_code.set("value", str(history[log]["status_code"]))
+                        time_cost = etree.SubElement(locate, "time_cost")
+                        time_cost.set("value", str(history[log]["time_cost"]))
+                        reason = etree.SubElement(locate, "reason")
+                        reason.set("value", str(history[log]["reason"]))
+                    except:
+                        continue
             tree = etree.ElementTree(time)
             tree.write(output_filename+".xml", pretty_print=True)
         elif sort == "STATUS_CODE":
@@ -225,20 +228,53 @@ def file_generator(output_format, history, filter_code, sort, output_filename):
                 if log["status_code"] not in filter_code:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log["link_url"])
-                    parent_url = etree.SubElement(locate, "parent_url")
-                    parent_url.set("value", str(log["parent_url"]))
-                    link_url = etree.SubElement(locate, "link_url")
-                    link_url.set("value", log["link_url"])
-                    current_url = etree.SubElement(locate, "current_url")
-                    current_url.set("value", log["current_url"])
-                    status_code = etree.SubElement(locate, "status_code")
-                    status_code.set("value", str(log["status_code"]))
-                    time_cost = etree.SubElement(locate, "time_cost")
-                    time_cost.set("value", str(log["time_cost"]))
-                    reason = etree.SubElement(locate, "reason")
-                    reason.set("value", str(log["reason"]))
+                    try:
+                        parent_url = etree.SubElement(locate, "parent_url")
+                        parent_url.set("value", str(log["parent_url"]))
+                        link_url = etree.SubElement(locate, "link_url")
+                        link_url.set("value", str(log["link_url"]))
+                        current_url = etree.SubElement(locate, "current_url")
+                        current_url.set("value", str(log["current_url"]))
+                        status_code = etree.SubElement(locate, "status_code")
+                        status_code.set("value", str(log["status_code"]))
+                        time_cost = etree.SubElement(locate, "time_cost")
+                        time_cost.set("value", str(log["time_cost"]))
+                        reason = etree.SubElement(locate, "reason")
+                        reason.set("value", str(log["reason"]))
+                    except:
+                        continue
             tree = etree.ElementTree(time)
             tree.write(output_filename+".xml", pretty_print=True)
+
+    elif output_format == "CSV":
+        if sort == "URL":
+            with open(output_filename+".csv", "w") as csvfile:
+                fieldnames = ["parent_url", "link_url", "current_url", "status_code", "time_cost", "reason"]
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                writer.writeheader()
+                for log in history:
+                    if history[log]["status_code"] not in filter_code:
+                        try:
+                            writer.writerow({"parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
+                        except:
+                            print history[log]
+                            continue
+        elif sort == "STATUS_CODE":
+            sort_by_status = sorted(history.itervalues(), key=lambda x : x["status_code"])
+            with open(output_filename+".csv", "w") as csvfile:
+                fieldnames = ["parent_url", "link_url", "current_url", "status_code", "time_cost", "reason"]
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                writer.writeheader()
+                for log in sort_by_status:
+                    if log["status_code"] not in filter_code:
+                        try:
+                            writer.writerow({"parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
+                        except:
+                            print log
+                            continue
+
 
     elif output_format == "JSON":
         print "Not implement"
