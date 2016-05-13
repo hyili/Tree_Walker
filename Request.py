@@ -37,6 +37,9 @@ def load_conf(filename, tag):
         filter_code = [int(i) for i in filter_pattern.split(",")]
         output_format = conf.get(tag, "FORMAT")
         output_filename = conf.get(tag, "FILENAME")
+        if output_filename == "":
+            output_filename = str(datetime.datetime.now())
+        print output_filename
         sort = conf.get(tag, "SORT")
         return {"AUTH": auth, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
     except:
