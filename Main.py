@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 
 import Request
@@ -11,9 +11,9 @@ def main():
     total_start_time = Request.datetime.datetime.now()
     session = Request.requests.Session()
 
-    print "************************************************************"
-    print conf["TARGET_URL"]
-    print "************************************************************"
+    print("************************************************************")
+    print(conf["TARGET_URL"])
+    print("************************************************************")
     source = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
     linktexts = Request.find_linktexts(source=source)
     if conf["DEPTH"] > 0:
@@ -24,7 +24,7 @@ def main():
     session.close()
 
     total_end_time = Request.datetime.datetime.now()
-    print "Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n"
+    print("Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n")
 
 if __name__ == "__main__":
     main()
