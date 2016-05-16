@@ -21,7 +21,7 @@ Global variable
 """
 total_links = 0
 total_broken_links = 0
-history_queue = queue.Queue(1000)
+history_queue = queue.Queue(2000)
 history_queue_lock = threading.Lock()
 
 """
@@ -51,7 +51,6 @@ def send_request(session, timeout, url, q):
     start_time = datetime.datetime.now()
     try:
         r = session.get(url, timeout=timeout)
-        r.encoding = "utf-8"
         status_code = r.status_code
         current_url = str(r.url)
     except KeyboardInterrupt:
@@ -92,6 +91,7 @@ def load_conf(filename, tag):
     try:
         auth = conf.get(tag, "AUTH")
         multithread = conf.get(tag, "MULTITHREAD")
+        threshold = int(conf.get(tag, "THRESHOLD"))
         target_url = conf.get(tag, "TARGET_URL")
         if auth == "YES":
             user = conf.get(tag, "USER")
@@ -107,7 +107,7 @@ def load_conf(filename, tag):
         output_formats = conf.get(tag, "FORMAT")
         output_format = [str(i) for i in output_formats.split(",")]
         sort = conf.get(tag, "SORT")
-        return {"AUTH": auth, "MULTITHREAD": multithread, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "SORT": sort}
+        return {"AUTH": auth, "MULTITHREAD": multithread, "THRESHOLD": threshold, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "SORT": sort}
     except:
         print("No login profile found.")
         quit()
@@ -115,7 +115,7 @@ def load_conf(filename, tag):
 """
 Navigate into the target website
 """
-def navigate(session, multithread, target_url_pattern, current_url, linktexts, filter_code, history={}, timeout=5, depth=0):
+def navigate(session, multithread, threshold, target_url_pattern, current_url, linktexts, filter_code, history={}, timeout=5, depth=0):
     global total_links, total_broken_links, history_queue
     links = []
     total_linktexts = len(linktexts)
@@ -141,11 +141,19 @@ def navigate(session, multithread, target_url_pattern, current_url, linktexts, f
             threads.append(thread)
             thread_id += 1
 
+            if thread_id >= threshold:
+                for thread in threads:
+                    sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
+                    counter += 1
+                    thread.join()
+                    threads.remove(thread)
+                thread_id = 0
+
         for thread in threads:
             sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
             counter += 1
-
             thread.join()
+            threads.remove(thread)
 
         while not history_queue.empty():
             result = history_queue.get()
@@ -159,7 +167,10 @@ def navigate(session, multithread, target_url_pattern, current_url, linktexts, f
             if history[sub_url]["status_code"] in filter_code:
                 if r is not None:
                     if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
-                        links.append((r.url, r.content.decode(r.encoding)))
+                        try:
+                            links.append((r.url, r.content.decode(r.encoding)))
+                        except:
+                            links.append((r.url, r.text))
             else:
                 if history[sub_url]["status_code"] == -6:
                     del history[sub_url]
@@ -193,7 +204,10 @@ def navigate(session, multithread, target_url_pattern, current_url, linktexts, f
             if history[sub_url]["status_code"] in filter_code:
                 if r is not None:
                     if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
-                        links.append((r.url, r.content.decode(r.encoding)))
+                        try:
+                            links.append((r.url, r.content.decode(r.encoding)))
+                        except:
+                            links.append((r.url, r.text))
             else:
                 if history[sub_url]["status_code"] == -6:
                     del history[sub_url]
@@ -211,7 +225,7 @@ def navigate(session, multithread, target_url_pattern, current_url, linktexts, f
         print("************************************************************")
         print(sub_url)
         print("************************************************************")
-        navigate(session=session, linktexts=sub_linktexts, history=history, current_url=sub_url, target_url_pattern=target_url_pattern, filter_code=filter_code, timeout=timeout, depth=depth)
+        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, history=history, current_url=sub_url, target_url_pattern=target_url_pattern, filter_code=filter_code, timeout=timeout, depth=depth)
 
     return history
 
@@ -261,7 +275,12 @@ def authenticate(session, target_url, payload, auth):
     except:
         quit()
 
-    return r.content.decode(r.encoding)
+    try:
+        ret_val = r.content.decode(r.encoding)
+    except:
+        ret_val = r.text
+
+    return ret_val
 
 """
 Find all the link in the given source
@@ -303,6 +322,7 @@ def file_generator(history, output_format=[], filter_code=[], sort="STATUS_CODE"
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(history[log]["reason"]))
                     except:
+                        print (history[log])
                         continue
             tree = etree.ElementTree(time)
             tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
@@ -324,7 +344,7 @@ def file_generator(history, output_format=[], filter_code=[], sort="STATUS_CODE"
                         link_url = etree.SubElement(locate, "link_url")
                         link_url.set("value", str(log["link_url"]))
                         link_name = etree.SubElement(locate, "link_name")
-                        link_name.set("value", str(history[log]["link_name"]))
+                        link_name.set("value", str(log["link_name"]))
                         current_url = etree.SubElement(locate, "current_url")
                         current_url.set("value", str(log["current_url"]))
                         status_code = etree.SubElement(locate, "status_code")
@@ -334,6 +354,7 @@ def file_generator(history, output_format=[], filter_code=[], sort="STATUS_CODE"
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(log["reason"]))
                     except:
+                        print (log)
                         continue
             tree = etree.ElementTree(time)
             tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
