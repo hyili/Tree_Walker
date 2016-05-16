@@ -41,14 +41,11 @@ def load_conf(filename, tag):
         target_url_pattern = pattern_generator(conf.get(tag, "TARGET_URL_PATTERN"))
         filter_codes = conf.get(tag, "FILTER")
         filter_code = [int(i) for i in filter_codes.split(",")]
-        output_format = conf.get(tag, "FORMAT")
-        output_filename = conf.get(tag, "FILENAME")
-        if output_filename == "":
-            output_filename = str(datetime.datetime.now())
-        print(output_filename)
+        output_formats = conf.get(tag, "FORMAT")
+        output_format = [str(i) for i in output_formats.split(",")]
         sort = conf.get(tag, "SORT")
-        return {"AUTH": auth, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "FILENAME": output_filename, "SORT": sort}
-    except:
+        return {"AUTH": auth, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "SORT": sort}
+    except :
         print("No login profile found.")
         quit()
 
@@ -213,9 +210,9 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CODE", output_filename="default"):
+def file_generator(history, output_format=[], filter_code=[], sort="STATUS_CODE", output_filename="DEFAULT"):
     global total_links, total_broken_links
-    if output_format == "XML":
+    if "XML" in output_format:
         if sort == "URL":
             total_links = etree.Element("total_links")
             total_links.set("value", str(total_links))
@@ -245,7 +242,7 @@ def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CO
                     except:
                         continue
             tree = etree.ElementTree(time)
-            tree.write(output_filename+".xml", pretty_print=True)
+            tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
         elif sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             total_links = etree.Element("total_links")
@@ -276,11 +273,11 @@ def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CO
                     except:
                         continue
             tree = etree.ElementTree(time)
-            tree.write(output_filename+".xml", pretty_print=True)
+            tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
 
-    elif output_format == "CSV":
+    if "CSV" in output_format:
         if sort == "URL":
-            with open(output_filename+".csv", "w") as csvfile:
+            with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
                 fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_broken_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -295,7 +292,7 @@ def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CO
                 writer.writerow({"total_links": total_links, "total_broken_links": total_broken_links})
         elif sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
-            with open(output_filename+".csv", "w") as csvfile:
+            with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
                 fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_broken_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -309,7 +306,7 @@ def file_generator(history, output_format="XML", filter_code=[], sort="STATUS_CO
                             continue
                 writer.writerow({"total_links": total_links, "total_broken_links": total_broken_links})
 
-    elif output_format == "JSON":
+    if "JSON" in output_format:
         print("Not implement")
 
 """
@@ -334,7 +331,5 @@ def pattern_generator(target_url):
     target_url_pattern = re.sub("\}", "\\}", target_url_pattern)
     target_url_pattern = re.sub("\|", "\\|", target_url_pattern)
     target_url_pattern = re.sub("\&", "\\&", target_url_pattern)
-
-    print(target_url_pattern)
 
     return target_url_pattern
