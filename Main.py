@@ -20,7 +20,7 @@ def main(argv):
         source = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
         linktexts = Request.find_linktexts(source=source)
         if conf["DEPTH"] > 0:
-            history = Request.navigate(session=session, linktexts=linktexts, current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], filter_code=conf["FILTER"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"])
+            history = Request.navigate(session=session, multithread=conf["MULTITHREAD"], linktexts=linktexts, current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], filter_code=conf["FILTER"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"])
         else:
             history = {}
         Request.file_generator(history=history, output_format=conf["FORMAT"], output_filename=tag, filter_code=conf["FILTER"], sort=conf["SORT"])
