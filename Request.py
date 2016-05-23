@@ -115,7 +115,7 @@ def load_conf(filename, tag):
 """
 Navigate into the target website
 """
-def navigate(session, multithread, threshold, target_url_pattern, current_url, linktexts, filter_code, history={}, timeout=5, depth=0):
+def navigate(session, multithread, threshold, target_url_pattern, current_url, linktexts, filter_code=[], history={}, timeout=5, depth=0):
     global total_links, total_broken_links, history_queue
     links = []
     total_linktexts = len(linktexts)
@@ -164,20 +164,21 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
             history[sub_url]["reason"] = result["reason"]
             r = result["response"]
 
-            if history[sub_url]["status_code"] in filter_code:
-                if r is not None:
-                    if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+            if history[sub_url]["status_code"] == 200:
+                if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+                    if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
+            elif history[sub_url]["status_code"] in filter_code:
+                continue
+            elif history[sub_url]["status_code"] == -6:
+                del history[sub_url]
             else:
-                if history[sub_url]["status_code"] == -6:
-                    del history[sub_url]
-                else:
-                    total_broken_links += 1
-                    print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
-                    print(history[sub_url]["status_code"])
+                total_broken_links += 1
+                print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
+                print(history[sub_url]["status_code"])
 
     else:
         for linktext in linktexts:
@@ -201,20 +202,21 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
             history[sub_url]["reason"] = result["reason"]
             r = result["response"]
 
-            if history[sub_url]["status_code"] in filter_code:
-                if r is not None:
-                    if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+            if history[sub_url]["status_code"] == 200:
+                if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+                    if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
+            elif history[sub_url]["status_code"] in filter_code:
+                continue
+            elif history[sub_url]["status_code"] == -6:
+                del history[sub_url]
             else:
-                if history[sub_url]["status_code"] == -6:
-                    del history[sub_url]
-                else:
-                    total_broken_links += 1
-                    print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
-                    print(history[sub_url]["status_code"])
+                total_broken_links += 1
+                print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
+                print(history[sub_url]["status_code"])
 
     if depth <= 0:
         return history
@@ -225,7 +227,7 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
         print("************************************************************")
         print(sub_url)
         print("************************************************************")
-        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, history=history, current_url=sub_url, target_url_pattern=target_url_pattern, filter_code=filter_code, timeout=timeout, depth=depth)
+        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, target_url_pattern=target_url_pattern, timeout=timeout, depth=depth)
 
     return history
 
@@ -233,11 +235,13 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
 Reformat url
 """
 def factor_url(current_url, sub_url):
-    pattern = "^(javascript|tel):"
-    if bool(re.search(pattern, sub_url)):
-        return sub_url
+    new_sub_url = re.sub("\\\\", "/", sub_url)
 
-    new_sub_url = html.parser.HTMLParser().unescape(sub_url)
+    pattern = "^(javascript|tel):"
+    if bool(re.search(pattern, new_sub_url)):
+        return new_sub_url
+
+    new_sub_url = html.parser.HTMLParser().unescape(new_sub_url)
 
     pattern = "^(ftp|http(s)?)://"
     if bool(re.search(pattern, new_sub_url)):
@@ -292,8 +296,12 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(history, output_format=[], filter_code=[], sort="STATUS_CODE", output_filename="DEFAULT"):
+def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE", output_filename="DEFAULT"):
     global total_links, total_broken_links
+
+    if total_broken_links == 0:
+        return
+
     if "XML" in output_format:
         if sort == "URL":
             time = etree.Element("time")
