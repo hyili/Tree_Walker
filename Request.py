@@ -305,7 +305,7 @@ def authenticate(session, target_url, payload, auth):
 Find all the link in the given source
 """
 def find_linktexts(source):
-    pattern = re.compile("<a([\s\S]*?)?href=\"([\s\S]*?)\"([\s\S]*)?>([\s\S]*?)?</a>")
+    pattern = re.compile("<a([\s\S]*?)?href=\"([\s\S]*?)?\"([\s\S]*?)?>([\s\S]*?)?</a>")
     return re.findall(pattern, source)
 
 """
