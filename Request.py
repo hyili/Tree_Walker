@@ -254,35 +254,50 @@ Will be forwarded to another authentication page
 Then, login with payload information
 """
 def authenticate(session, target_url, payload, auth):
+    global total_links, total_broken_links
+    history = {}
+    history[target_url] = {"parent_url": [], "link_url": str(target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
     try:
-        r = session.post(target_url)
+        r = session.get(target_url)
         if auth == "YES":
             r = session.post(r.url, data=payload)
+        total_links += 1
+        history[target_url]["current_url"] = r.url
+        history[target_url]["status_code"] = r.status_code
     except KeyboardInterrupt:
         print("Bye~ Bye~\n")
         quit()
     except requests.exceptions.HTTPError as e:
-        print(str(e))
+        history[target_url]["status_code"] = -2
+        history[target_url]["reason"] = e
         quit()
     except requests.exceptions.Timeout as e:
-        print(str(e))
+        history[target_url]["status_code"] = -3
+        history[target_url]["reason"] = e
         quit()
     except requests.exceptions.TooManyRedirects as e:
-        print(str(e))
+        history[target_url]["status_code"] = -4
+        history[target_url]["reason"] = e
         quit()
     except requests.exceptions.ConnectionError as e:
-        print(str(e))
+        history[target_url]["status_code"] = -5
+        history[target_url]["reason"] = e
         quit()
     except requests.exceptions.InvalidSchema as e:
-        print(str(e))
+        history[target_url]["status_code"] = -6
+        history[target_url]["reason"] = e
         quit()
     except:
+        history[target_url]["status_code"] = -7
         quit()
 
+    if history[target_url]["status_code"] != 200:
+        total_broken_links += 1
+
     try:
-        ret_val = r.content.decode(r.encoding)
+        ret_val = (r.content.decode(r.encoding), history)
     except:
-        ret_val = r.text
+        ret_val = (r.text, history)
 
     return ret_val
 
@@ -290,7 +305,7 @@ def authenticate(session, target_url, payload, auth):
 Find all the link in the given source
 """
 def find_linktexts(source):
-    pattern = "<a(.*?)?href=\"(.*?)\"(.*)?>(.*?)?</a>"
+    pattern = re.compile("<a([\s\S]*?)?href=\"([\s\S]*?)\"([\s\S]*)?>([\s\S]*?)?</a>")
     return re.findall(pattern, source)
 
 """

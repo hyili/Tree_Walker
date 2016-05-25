@@ -22,10 +22,10 @@ def main(argv):
         print("************************************************************")
         print(conf["TARGET_URL"])
         print("************************************************************")
-        source = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
+        (source, history) = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
         linktexts = Request.find_linktexts(source=source)
         if conf["DEPTH"] > 0:
-            history = Request.navigate(session=session, multithread=conf["MULTITHREAD"], threshold=conf["THRESHOLD"], linktexts=linktexts, filter_code=conf["FILTER"], current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"])
+            history.update(Request.navigate(session=session, multithread=conf["MULTITHREAD"], threshold=conf["THRESHOLD"], linktexts=linktexts, filter_code=conf["FILTER"], current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"]))
         Request.file_generator(history=history, filter_code=conf["FILTER"], output_format=conf["FORMAT"], output_filename=tag, sort=conf["SORT"])
         session.close()
 
