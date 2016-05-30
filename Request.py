@@ -20,7 +20,7 @@ import queue
 Global variable
 """
 total_links = 0
-total_broken_links = 0
+total_output_links = 0
 history_queue = queue.Queue(2000)
 history_queue_lock = threading.Lock()
 
@@ -116,7 +116,7 @@ def load_conf(filename, tag):
 Navigate into the target website
 """
 def navigate(session, multithread, threshold, target_url_pattern, current_url, linktexts, filter_code=[], history={}, timeout=5, depth=0):
-    global total_links, total_broken_links, history_queue
+    global total_links, total_output_links, history_queue
     links = []
     total_linktexts = len(linktexts)
     total_links += total_linktexts
@@ -171,12 +171,13 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
-            elif history[sub_url]["status_code"] in filter_code:
+
+            if history[sub_url]["status_code"] in filter_code:
                 continue
             elif history[sub_url]["status_code"] == -6:
                 del history[sub_url]
             else:
-                total_broken_links += 1
+                total_output_links += 1
                 print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
                 print(history[sub_url]["status_code"])
 
@@ -209,12 +210,13 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
-            elif history[sub_url]["status_code"] in filter_code:
+
+            if history[sub_url]["status_code"] in filter_code:
                 continue
             elif history[sub_url]["status_code"] == -6:
                 del history[sub_url]
             else:
-                total_broken_links += 1
+                total_output_links += 1
                 print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
                 print(history[sub_url]["status_code"])
 
@@ -254,7 +256,7 @@ Will be forwarded to another authentication page
 Then, login with payload information
 """
 def authenticate(session, target_url, payload, auth):
-    global total_links, total_broken_links
+    global total_links, total_output_links
     history = {}
     history[target_url] = {"parent_url": [], "link_url": str(target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
     try:
@@ -292,7 +294,7 @@ def authenticate(session, target_url, payload, auth):
         quit()
 
     if history[target_url]["status_code"] != 200:
-        total_broken_links += 1
+        total_output_links += 1
 
     try:
         ret_val = (r.content.decode(r.encoding), history)
@@ -312,9 +314,9 @@ def find_linktexts(source):
 Output file generator using specified format
 """
 def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE", output_filename="DEFAULT"):
-    global total_links, total_broken_links
+    global total_links, total_output_links
 
-    if total_broken_links == 0:
+    if total_output_links == 0:
         return
 
     if "XML" in output_format:
@@ -323,8 +325,8 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
             time.set("value", str(datetime.datetime.now()))
             total_link = etree.SubElement(time, "total_links")
             total_link.set("value", str(total_links))
-            total_broken_link = etree.SubElement(time, "total_broken_links")
-            total_broken_link.set("value", str(total_broken_links))
+            total_output_link = etree.SubElement(time, "total_output_links")
+            total_output_link.set("value", str(total_output_links))
             for log in history:
                 if history[log]["status_code"] not in filter_code:
                     locate = etree.SubElement(time, "locate")
@@ -355,8 +357,8 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
             time.set("value", str(datetime.datetime.now()))
             total_link = etree.SubElement(time, "total_links")
             total_link.set("value", str(total_links))
-            total_broken_link = etree.SubElement(time, "total_broken_links")
-            total_broken_link.set("value", str(total_broken_links))
+            total_output_link = etree.SubElement(time, "total_output_links")
+            total_output_link.set("value", str(total_output_links))
             for log in sort_by_status:
                 if log["status_code"] not in filter_code:
                     locate = etree.SubElement(time, "locate")
@@ -385,7 +387,7 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
     if "CSV" in output_format:
         if sort == "URL":
             with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
-                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_broken_links"]
+                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 writer.writeheader()
@@ -396,11 +398,11 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
                         except:
                             print(history[log])
                             continue
-                writer.writerow({"total_links": str(total_links), "total_broken_links": str(total_broken_links)})
+                writer.writerow({"total_links": str(total_links), "total_output_links": str(total_output_links)})
         elif sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
-                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_broken_links"]
+                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 writer.writeheader()
@@ -411,7 +413,7 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
                         except:
                             print(log)
                             continue
-                writer.writerow({"total_links": str(total_links), "total_broken_links": str(total_broken_links)})
+                writer.writerow({"total_links": str(total_links), "total_output_links": str(total_output_links)})
 
     if "JSON" in output_format:
         print("Not implement")
