@@ -255,10 +255,12 @@ def factor_url(current_url, sub_url):
 Will be forwarded to another authentication page
 Then, login with payload information
 """
-def authenticate(session, target_url, payload, auth):
+def authenticate(session, target_url, filter_code, payload, auth):
     global total_links, total_output_links
     history = {}
     history[target_url] = {"parent_url": [], "link_url": str(target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
+
+    start_time = datetime.datetime.now()
     try:
         r = session.get(target_url)
         if auth == "YES":
@@ -293,7 +295,11 @@ def authenticate(session, target_url, payload, auth):
         history[target_url]["status_code"] = -7
         quit()
 
-    if history[target_url]["status_code"] != 200:
+    end_time = datetime.datetime.now()
+    time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+    history[target_url]["time_cost"] = time_cost
+
+    if history[target_url]["status_code"] not in filter_code:
         total_output_links += 1
 
     try:

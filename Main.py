@@ -22,7 +22,7 @@ def main(argv):
         print("************************************************************")
         print(conf["TARGET_URL"])
         print("************************************************************")
-        (source, history) = Request.authenticate(session=session, payload=conf["PAYLOAD"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
+        (source, history) = Request.authenticate(session=session, payload=conf["PAYLOAD"], filter_code=conf["FILTER"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
         linktexts = Request.find_linktexts(source=source)
         if conf["DEPTH"] > 0:
             history.update(Request.navigate(session=session, multithread=conf["MULTITHREAD"], threshold=conf["THRESHOLD"], linktexts=linktexts, filter_code=conf["FILTER"], current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"]))
