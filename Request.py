@@ -39,6 +39,23 @@ class HTTPRequest(threading.Thread):
         send_request(session=self.session, timeout=self.timeout, url=self.thread_name, q=self.q)
 
 """
+Config class
+"""
+class Config():
+    def __init__(self, auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort):
+        self.auth = auth
+        self.multithread = multithread
+        self.threshold = threshold
+        self.target_url = target_url
+        self.domain_url = domain_url
+        self.payload = payload
+        self.depth = depth
+        self.timeout = timeout
+        self.filter_code = filter_code
+        self.output_format = output_format
+        self.sort = sort
+
+"""
 Multithreaded HTTPRequest
 """
 def send_request(session, timeout, url, q):
@@ -101,13 +118,13 @@ def load_conf(filename, tag):
             payload = {"target": target_url}
         depth = int(conf.get(tag, "DEPTH"))
         timeout = int(conf.get(tag, "TIMEOUT"))
-        target_url_pattern = pattern_generator(conf.get(tag, "TARGET_URL_PATTERN"))
+        domain_url = pattern_generator(conf.get(tag, "DOMAIN_URL"))
         filter_codes = conf.get(tag, "FILTER")
         filter_code = [int(i) for i in filter_codes.split(",")]
         output_formats = conf.get(tag, "FORMAT")
         output_format = [str(i) for i in output_formats.split(",")]
         sort = conf.get(tag, "SORT")
-        return {"AUTH": auth, "MULTITHREAD": multithread, "THRESHOLD": threshold, "PAYLOAD": payload, "DEPTH": depth, "TIMEOUT": timeout, "TARGET_URL": target_url, "TARGET_URL_PATTERN": target_url_pattern, "FILTER": filter_code, "FORMAT": output_format, "SORT": sort}
+        return Config(auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
     except:
         print("No login profile found.")
         quit()
@@ -115,7 +132,7 @@ def load_conf(filename, tag):
 """
 Navigate into the target website
 """
-def navigate(session, multithread, threshold, target_url_pattern, current_url, linktexts, filter_code=[], history={}, timeout=5, depth=0):
+def navigate(session, multithread, threshold, domain_url, current_url, linktexts, filter_code=[], history={}, timeout=5, depth=0):
     global total_links, total_output_links, history_queue
     links = []
     total_linktexts = len(linktexts)
@@ -165,7 +182,7 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
             r = result["response"]
 
             if history[sub_url]["status_code"] == 200:
-                if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+                if bool(re.search(domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
@@ -204,7 +221,7 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
             r = result["response"]
 
             if history[sub_url]["status_code"] == 200:
-                if bool(re.search(target_url_pattern, history[sub_url]["current_url"])):
+                if bool(re.search(domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
@@ -229,7 +246,7 @@ def navigate(session, multithread, threshold, target_url_pattern, current_url, l
         print("************************************************************")
         print(sub_url)
         print("************************************************************")
-        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, target_url_pattern=target_url_pattern, timeout=timeout, depth=depth)
+        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, domain_url=domain_url, timeout=timeout, depth=depth)
 
     return history
 
@@ -425,26 +442,26 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
         print("Not implement")
 
 """
-transform the target_url to target_url_pattern in regular expression format
+transform the target_url to domain_url in regular expression format
 """
 def pattern_generator(target_url):
-    target_url_pattern = target_url
+    domain_url = target_url
 
-    target_url_pattern = re.sub("\.", "\\.", target_url_pattern)
-    target_url_pattern = re.sub("\:", "\\:", target_url_pattern)
-    target_url_pattern = re.sub("\?", "\\?", target_url_pattern)
-    target_url_pattern = re.sub("\*", "\\*", target_url_pattern)
-    target_url_pattern = re.sub("\+", "\\+", target_url_pattern)
-    target_url_pattern = re.sub("\^", "\\^", target_url_pattern)
-    target_url_pattern = re.sub("\$", "\\$", target_url_pattern)
-    target_url_pattern = re.sub("\~", "\\~", target_url_pattern)
-    target_url_pattern = re.sub("\(", "\\(", target_url_pattern)
-    target_url_pattern = re.sub("\)", "\\)", target_url_pattern)
-    target_url_pattern = re.sub("\[", "\\[", target_url_pattern)
-    target_url_pattern = re.sub("\]", "\\]", target_url_pattern)
-    target_url_pattern = re.sub("\{", "\\{", target_url_pattern)
-    target_url_pattern = re.sub("\}", "\\}", target_url_pattern)
-    target_url_pattern = re.sub("\|", "\\|", target_url_pattern)
-    target_url_pattern = re.sub("\&", "\\&", target_url_pattern)
+    domain_url = re.sub("\.", "\\.", domain_url)
+    domain_url = re.sub("\:", "\\:", domain_url)
+    domain_url = re.sub("\?", "\\?", domain_url)
+    domain_url = re.sub("\*", "\\*", domain_url)
+    domain_url = re.sub("\+", "\\+", domain_url)
+    domain_url = re.sub("\^", "\\^", domain_url)
+    domain_url = re.sub("\$", "\\$", domain_url)
+    domain_url = re.sub("\~", "\\~", domain_url)
+    domain_url = re.sub("\(", "\\(", domain_url)
+    domain_url = re.sub("\)", "\\)", domain_url)
+    domain_url = re.sub("\[", "\\[", domain_url)
+    domain_url = re.sub("\]", "\\]", domain_url)
+    domain_url = re.sub("\{", "\\{", domain_url)
+    domain_url = re.sub("\}", "\\}", domain_url)
+    domain_url = re.sub("\|", "\\|", domain_url)
+    domain_url = re.sub("\&", "\\&", domain_url)
 
-    return target_url_pattern
+    return domain_url

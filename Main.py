@@ -7,26 +7,25 @@ import Request
 """
 Main function
 """
-def main(argv):
+def round_funct(argv):
     total_start_time = Request.datetime.datetime.now()
     for tag in argv[1:]:
         history = {}
-        conf = {}
         source = ""
         linktexts = []
 
-        print("["+str(tag)+"]\n")
+        print("["+str(tag)+"]")
         conf = Request.load_conf(filename=".requests.conf", tag=tag)
 
         session = Request.requests.Session()
         print("************************************************************")
-        print(conf["TARGET_URL"])
+        print(conf.target_url)
         print("************************************************************")
-        (source, history) = Request.authenticate(session=session, payload=conf["PAYLOAD"], filter_code=conf["FILTER"], target_url=conf["TARGET_URL"], auth=conf["AUTH"])
+        (source, history) = Request.authenticate(session=session, payload=conf.payload, filter_code=conf.filter_code, target_url=conf.target_url, auth=conf.auth)
         linktexts = Request.find_linktexts(source=source)
-        if conf["DEPTH"] > 0:
-            history.update(Request.navigate(session=session, multithread=conf["MULTITHREAD"], threshold=conf["THRESHOLD"], linktexts=linktexts, filter_code=conf["FILTER"], current_url=conf["TARGET_URL"], target_url_pattern=conf["TARGET_URL_PATTERN"], timeout=conf["TIMEOUT"], depth=conf["DEPTH"]))
-        Request.file_generator(history=history, filter_code=conf["FILTER"], output_format=conf["FORMAT"], output_filename=tag, sort=conf["SORT"])
+        if conf.depth > 0:
+            history.update(Request.navigate(session=session, multithread=conf.multithread, threshold=conf.threshold, linktexts=linktexts, filter_code=conf.filter_code, current_url=conf.target_url, domain_url=conf.domain_url, timeout=conf.timeout, depth=conf.depth))
+        Request.file_generator(history=history, filter_code=conf.filter_code, output_format=conf.output_format, output_filename=tag, sort=conf.sort)
         session.close()
 
     total_end_time = Request.datetime.datetime.now()
@@ -35,4 +34,4 @@ def main(argv):
 if __name__ == "__main__":
     argv = sys.argv
 
-    main(argv)
+    round_funct(argv)
