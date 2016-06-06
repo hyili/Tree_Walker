@@ -336,12 +336,13 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE", output_filename="DEFAULT"):
+def file_generator(history, logger, filter_code=[], output_format=[], sort="STATUS_CODE", output_filename="DEFAULT"):
     global total_links, total_output_links
 
     if total_output_links == 0:
         return
 
+    logger.warn("["+output_filename+"] Genrating output files...")
     if "XML" in output_format:
         if sort == "URL":
             time = etree.Element("time")
@@ -373,7 +374,8 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
                         print (history[log])
                         continue
             tree = etree.ElementTree(time)
-            tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
+            with open(output_filename+".xml", "ab") as xmlfile:
+                tree.write(xmlfile, pretty_print=True)
         elif sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             time = etree.Element("time")
@@ -405,38 +407,41 @@ def file_generator(history, filter_code=[], output_format=[], sort="STATUS_CODE"
                         print (log)
                         continue
             tree = etree.ElementTree(time)
-            tree.write(output_filename+"-"+str(datetime.datetime.now())+".xml", pretty_print=True)
+            with open(output_filename+".xml", "ab") as xmlfile:
+                tree.write(xmlfile, pretty_print=True)
 
     if "CSV" in output_format:
         if sort == "URL":
-            with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
-                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
+            with open(output_filename+".csv", "a") as csvfile:
+                date_time = str(datetime.datetime.now())
+                fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 writer.writeheader()
                 for log in history:
                     if history[log]["status_code"] not in filter_code:
                         try:
-                            writer.writerow({"parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
+                            writer.writerow({"datetime": date_time, "parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
                         except:
                             print(history[log])
                             continue
-                writer.writerow({"total_links": str(total_links), "total_output_links": str(total_output_links)})
+                writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
         elif sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
-            with open(output_filename+"-"+str(datetime.datetime.now())+".csv", "w") as csvfile:
-                fieldnames = ["parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
+            with open(output_filename+".csv", "a") as csvfile:
+                date_time = str(datetime.datetime.now())
+                fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 writer.writeheader()
                 for log in sort_by_status:
                     if log["status_code"] not in filter_code:
                         try:
-                            writer.writerow({"parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
+                            writer.writerow({"datetime": date_time, "parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
                         except:
                             print(log)
                             continue
-                writer.writerow({"total_links": str(total_links), "total_output_links": str(total_output_links)})
+                writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
 
     if "JSON" in output_format:
         print("Not implement")
