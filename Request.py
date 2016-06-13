@@ -104,6 +104,9 @@ Load option from given tag
 def load(conf, tag, option, funct=None):
     try:
         result = conf.get(tag, option)
+    except configparser.NoSectionError as e:
+        print(e)
+        quit()
     except:
         try:
             result = conf.get("DEFAULT", option)
