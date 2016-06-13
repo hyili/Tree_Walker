@@ -99,35 +99,51 @@ def send_request(session, timeout, url, q):
     q.put({"sub_url": url, "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
 
 """
+Load option from given tag
+"""
+def load(conf, tag, option, funct=None):
+    try:
+        result = conf.get(tag, option)
+    except:
+        try:
+            result = conf.get("DEFAULT", option)
+        except:
+            print("Default option "+option+" broken")
+            quit()
+
+    if funct is None:
+        return result
+    else:
+        return funct(result)
+
+"""
 Load user and password from file
 """
 def load_conf(filename, tag):
     conf = configparser.ConfigParser()
     conf.read(filename)
     conf.sections()
-    try:
-        auth = conf.get(tag, "AUTH")
-        multithread = conf.get(tag, "MULTITHREAD")
-        threshold = int(conf.get(tag, "THRESHOLD"))
-        target_url = conf.get(tag, "TARGET_URL")
-        if auth == "YES":
-            user = conf.get(tag, "USER")
-            password = conf.get(tag, "PASS")
-            payload = {"target": target_url, "USER": user, "PASSWORD": password}
-        else:
-            payload = {"target": target_url}
-        depth = int(conf.get(tag, "DEPTH"))
-        timeout = int(conf.get(tag, "TIMEOUT"))
-        domain_url = pattern_generator(conf.get(tag, "DOMAIN_URL"))
-        filter_codes = conf.get(tag, "FILTER")
-        filter_code = [int(i) for i in filter_codes.split(",")]
-        output_formats = conf.get(tag, "FORMAT")
-        output_format = [str(i) for i in output_formats.split(",")]
-        sort = conf.get(tag, "SORT")
-        return Config(auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
-    except:
-        print("No login profile found.")
-        quit()
+
+    auth = load(conf, tag, "AUTH")
+    multithread = load(conf, tag, "MULTITHREAD")
+    threshold = load(conf, tag, "THRESHOLD", int)
+    target_url = load(conf, tag, "TARGET_URL")
+    if auth == "YES":
+        user = load(conf, tag, "USER")
+        password = load(conf, tag, "PASS")
+        payload = {"target": target_url, "USER": user, "PASSWORD": password}
+    else:
+        payload = {"target": target_url}
+    depth = load(conf, tag, "DEPTH", int)
+    timeout = load(conf, tag, "TIMEOUT", int)
+    domain_url = load(conf, tag, "DOMAIN_URL", pattern_generator)
+    filter_codes = load(conf, tag, "FILTER")
+    filter_code = [int(i) for i in filter_codes.split(",")]
+    output_formats = load(conf, tag, "FORMAT")
+    output_format = [str(i) for i in output_formats.split(",")]
+    sort = load(conf, tag, "SORT")
+
+    return Config(auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
 
 """
 Navigate into the target website
