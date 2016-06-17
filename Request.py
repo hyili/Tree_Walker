@@ -42,11 +42,12 @@ class HTTPRequest(threading.Thread):
 Config class
 """
 class Config():
-    def __init__(self, auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort):
+    def __init__(self, auth, multithread, threshold, target_url, current_url, domain_url, payload, depth, timeout, filter_code, output_format, sort):
         self.auth = auth
         self.multithread = multithread
         self.threshold = threshold
         self.target_url = target_url
+        self.current_url = current_url
         self.domain_url = domain_url
         self.payload = payload
         self.depth = depth
@@ -122,7 +123,7 @@ def load(conf, tag, option, funct=None):
 """
 Load user and password from file
 """
-def load_conf(filename, tag):
+def load_config(filename, tag):
     conf = configparser.ConfigParser()
     conf.read(filename)
     conf.sections()
@@ -131,6 +132,7 @@ def load_conf(filename, tag):
     multithread = load(conf, tag, "MULTITHREAD")
     threshold = load(conf, tag, "THRESHOLD", int)
     target_url = load(conf, tag, "TARGET_URL")
+    current_url = target_url
     if auth == "YES":
         user = load(conf, tag, "USER")
         password = load(conf, tag, "PASS")
@@ -146,38 +148,40 @@ def load_conf(filename, tag):
     output_format = [str(i) for i in output_formats.split(",")]
     sort = load(conf, tag, "SORT")
 
-    return Config(auth, multithread, threshold, target_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
+    return Config(auth, multithread, threshold, target_url, current_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
 
 """
 Navigate into the target website
 """
-def navigate(session, multithread, threshold, domain_url, current_url, linktexts, filter_code=[], history={}, timeout=5, depth=0):
+def navigate(session, linktexts, config, history={}):
     global total_links, total_output_links, history_queue
+
+    config.depth -= 1
+
     links = []
     total_linktexts = len(linktexts)
     total_links += total_linktexts
-    depth -= 1
     counter = 1
 
-    if multithread == "YES":
+    if config.multithread == "YES":
         thread_id = 0
         threads = []
         for linktext in linktexts:
-            sub_url = factor_url(current_url, linktext[1])
+            sub_url = factor_url(config.current_url, linktext[1])
 
             if sub_url in history:
-                if current_url not in history[sub_url]["parent_url"]:
-                    history[sub_url]["parent_url"].append(str(current_url))
+                if config.current_url not in history[sub_url]["parent_url"]:
+                    history[sub_url]["parent_url"].append(str(config.current_url))
                 continue
             else:
-                history[sub_url] = {"parent_url": [str(current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
+                history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
-            thread = HTTPRequest(thread_id, sub_url, session, timeout, history_queue)
+            thread = HTTPRequest(thread_id, sub_url, session, config.timeout, history_queue)
             thread.start()
             threads.append(thread)
             thread_id += 1
 
-            if thread_id >= threshold:
+            if thread_id >= config.threshold:
                 for thread in threads:
                     sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
                     counter += 1
@@ -201,14 +205,14 @@ def navigate(session, multithread, threshold, domain_url, current_url, linktexts
             r = result["response"]
 
             if history[sub_url]["status_code"] == 200:
-                if bool(re.search(domain_url, history[sub_url]["current_url"])):
+                if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
 
-            if history[sub_url]["status_code"] in filter_code:
+            if history[sub_url]["status_code"] in config.filter_code:
                 continue
             elif history[sub_url]["status_code"] == -6:
                 del history[sub_url]
@@ -222,16 +226,16 @@ def navigate(session, multithread, threshold, domain_url, current_url, linktexts
             sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
             counter += 1
 
-            sub_url = factor_url(current_url, linktext[1])
+            sub_url = factor_url(config.current_url, linktext[1])
 
             if sub_url in history:
-                if current_url not in history[sub_url]["parent_url"]:
-                    history[sub_url]["parent_url"].append(str(current_url))
+                if config.current_url not in history[sub_url]["parent_url"]:
+                    history[sub_url]["parent_url"].append(str(config.current_url))
                 continue
             else:
-                history[sub_url] = {"parent_url": [str(current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
+                history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
-            send_request(session, timeout, sub_url, history_queue)
+            send_request(session, config.timeout, sub_url, history_queue)
             result = history_queue.get()
             history[sub_url]["current_url"] = result["current_url"]
             history[sub_url]["status_code"] = result["status_code"]
@@ -240,14 +244,14 @@ def navigate(session, multithread, threshold, domain_url, current_url, linktexts
             r = result["response"]
 
             if history[sub_url]["status_code"] == 200:
-                if bool(re.search(domain_url, history[sub_url]["current_url"])):
+                if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
                             links.append((r.url, r.content.decode(r.encoding)))
                         except:
                             links.append((r.url, r.text))
 
-            if history[sub_url]["status_code"] in filter_code:
+            if history[sub_url]["status_code"] in config.filter_code:
                 continue
             elif history[sub_url]["status_code"] == -6:
                 del history[sub_url]
@@ -256,7 +260,8 @@ def navigate(session, multithread, threshold, domain_url, current_url, linktexts
                 print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
                 print(history[sub_url]["status_code"])
 
-    if depth <= 0:
+    if config.depth <= 0:
+        config.depth += 1
         return history
 
     for link in links:
@@ -265,8 +270,12 @@ def navigate(session, multithread, threshold, domain_url, current_url, linktexts
         print("************************************************************")
         print(sub_url)
         print("************************************************************")
-        navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, domain_url=domain_url, timeout=timeout, depth=depth)
+        # navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, domain_url=domain_url, timeout=timeout, depth=depth)
+        # config.current_url will record the latest excuted url
+        config.current_url = sub_url
+        navigate(session=session, linktexts=sub_linktexts, config=config, history=history)
 
+    config.depth += 1
     return history
 
 """
@@ -291,51 +300,51 @@ def factor_url(current_url, sub_url):
 Will be forwarded to another authentication page
 Then, login with payload information
 """
-def authenticate(session, target_url, filter_code, payload, auth):
+def authenticate(session, config):
     global total_links, total_output_links
     history = {}
-    history[target_url] = {"parent_url": [], "link_url": str(target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
+    history[config.target_url] = {"parent_url": [], "link_url": str(config.target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
     start_time = datetime.datetime.now()
     try:
-        r = session.get(target_url)
-        if auth == "YES":
-            r = session.post(r.url, data=payload)
+        r = session.get(config.target_url)
+        if config.auth == "YES":
+            r = session.post(r.url, data=config.payload)
         total_links += 1
-        history[target_url]["current_url"] = r.url
-        history[target_url]["status_code"] = r.status_code
+        history[config.target_url]["current_url"] = r.url
+        history[config.target_url]["status_code"] = r.status_code
     except KeyboardInterrupt:
         print("Bye~ Bye~\n")
         quit()
     except requests.exceptions.HTTPError as e:
-        history[target_url]["status_code"] = -2
-        history[target_url]["reason"] = e
+        history[config.target_url]["status_code"] = -2
+        history[config.target_url]["reason"] = e
         quit()
     except requests.exceptions.Timeout as e:
-        history[target_url]["status_code"] = -3
-        history[target_url]["reason"] = e
+        history[config.target_url]["status_code"] = -3
+        history[config.target_url]["reason"] = e
         quit()
     except requests.exceptions.TooManyRedirects as e:
-        history[target_url]["status_code"] = -4
-        history[target_url]["reason"] = e
+        history[config.target_url]["status_code"] = -4
+        history[config.target_url]["reason"] = e
         quit()
     except requests.exceptions.ConnectionError as e:
-        history[target_url]["status_code"] = -5
-        history[target_url]["reason"] = e
+        history[config.target_url]["status_code"] = -5
+        history[config.target_url]["reason"] = e
         quit()
     except requests.exceptions.InvalidSchema as e:
-        history[target_url]["status_code"] = -6
-        history[target_url]["reason"] = e
+        history[config.target_url]["status_code"] = -6
+        history[config.target_url]["reason"] = e
         quit()
     except:
-        history[target_url]["status_code"] = -7
+        history[config.target_url]["status_code"] = -7
         quit()
 
     end_time = datetime.datetime.now()
     time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-    history[target_url]["time_cost"] = time_cost
+    history[config.target_url]["time_cost"] = time_cost
 
-    if history[target_url]["status_code"] not in filter_code:
+    if history[config.target_url]["status_code"] not in config.filter_code:
         total_output_links += 1
 
     try:
@@ -355,15 +364,15 @@ def find_linktexts(source):
 """
 Output file generator using specified format
 """
-def file_generator(history, logger, filter_code=[], output_format=[], sort="STATUS_CODE", output_filename="DEFAULT"):
+def file_generator(history, logger, config, output_filename):
     global total_links, total_output_links
 
     if total_output_links == 0:
         return
 
     logger.warn("["+output_filename+"] Genrating output files...")
-    if "XML" in output_format:
-        if sort == "URL":
+    if "XML" in config.output_format:
+        if config.sort == "URL":
             time = etree.Element("time")
             time.set("value", str(datetime.datetime.now()))
             total_link = etree.SubElement(time, "total_links")
@@ -371,7 +380,7 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
             total_output_link = etree.SubElement(time, "total_output_links")
             total_output_link.set("value", str(total_output_links))
             for log in history:
-                if history[log]["status_code"] not in filter_code:
+                if history[log]["status_code"] not in config.filter_code:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log)
                     try:
@@ -395,7 +404,7 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
             tree = etree.ElementTree(time)
             with open(output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
-        elif sort == "STATUS_CODE":
+        elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             time = etree.Element("time")
             time.set("value", str(datetime.datetime.now()))
@@ -404,7 +413,7 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
             total_output_link = etree.SubElement(time, "total_output_links")
             total_output_link.set("value", str(total_output_links))
             for log in sort_by_status:
-                if log["status_code"] not in filter_code:
+                if log["status_code"] not in config.filter_code:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log["link_url"])
                     try:
@@ -429,8 +438,8 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
             with open(output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
 
-    if "CSV" in output_format:
-        if sort == "URL":
+    if "CSV" in config.output_format:
+        if config.sort == "URL":
             with open(output_filename+".csv", "a") as csvfile:
                 date_time = str(datetime.datetime.now())
                 fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "time_cost", "reason", "total_links", "total_output_links"]
@@ -438,14 +447,14 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
 
                 writer.writeheader()
                 for log in history:
-                    if history[log]["status_code"] not in filter_code:
+                    if history[log]["status_code"] not in config.filter_code:
                         try:
                             writer.writerow({"datetime": date_time, "parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
                         except:
                             print(history[log])
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
-        elif sort == "STATUS_CODE":
+        elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             with open(output_filename+".csv", "a") as csvfile:
                 date_time = str(datetime.datetime.now())
@@ -454,7 +463,7 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
 
                 writer.writeheader()
                 for log in sort_by_status:
-                    if log["status_code"] not in filter_code:
+                    if log["status_code"] not in config.filter_code:
                         try:
                             writer.writerow({"datetime": date_time, "parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
                         except:
@@ -462,7 +471,7 @@ def file_generator(history, logger, filter_code=[], output_format=[], sort="STAT
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
 
-    if "JSON" in output_format:
+    if "JSON" in config.output_format:
         print("Not implement")
 
 """

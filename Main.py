@@ -4,6 +4,7 @@
 import sys
 import logging
 import Request
+import argparse
 
 """
 Logger init
@@ -19,27 +20,35 @@ def log_initialize(logname):
     return logger
 
 """
+Argument init
+"""
+def arg_initialize(argv):
+    parser = argparse.ArgumentParser(description="Start to parse the website.")
+    return parser
+
+"""
 Round function
 """
 def round_funct(argv, logger):
     total_start_time = Request.datetime.datetime.now()
     for tag in argv[1:]:
         history = {}
-        source = ""
-        linktexts = []
 
         print("["+str(tag)+"]")
-        conf = Request.load_conf(filename=".requests.conf", tag=tag)
+        conf = Request.load_config(filename=".requests.conf", tag=tag)
 
         session = Request.requests.Session()
         print("************************************************************")
         print(conf.target_url)
         print("************************************************************")
-        (source, history) = Request.authenticate(session=session, payload=conf.payload, filter_code=conf.filter_code, target_url=conf.target_url, auth=conf.auth)
+        # (source, history) = Request.authenticate(session=session, payload=conf.payload, filter_code=conf.filter_code, target_url=conf.target_url, auth=conf.auth)
+        (source, history) = Request.authenticate(session=session, config=conf)
         linktexts = Request.find_linktexts(source=source)
         if conf.depth > 0:
-            history.update(Request.navigate(session=session, multithread=conf.multithread, threshold=conf.threshold, linktexts=linktexts, filter_code=conf.filter_code, current_url=conf.target_url, domain_url=conf.domain_url, timeout=conf.timeout, depth=conf.depth))
-        Request.file_generator(history=history, logger=logger, filter_code=conf.filter_code, output_format=conf.output_format, output_filename=tag, sort=conf.sort)
+            # history.update(Request.navigate(session=session, multithread=conf.multithread, threshold=conf.threshold, linktexts=linktexts, filter_code=conf.filter_code, current_url=conf.target_url, domain_url=conf.domain_url, timeout=conf.timeout, depth=conf.depth))
+            history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
+        # Request.file_generator(history=history, logger=logger, filter_code=conf.filter_code, output_format=conf.output_format, output_filename=tag, sort=conf.sort)
+        Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
         session.close()
 
     total_end_time = Request.datetime.datetime.now()
@@ -52,4 +61,5 @@ if __name__ == "__main__":
     argv = sys.argv
 
     logger = log_initialize(".requests.log")
+    parser = arg_initialize(argv)
     round_funct(argv, logger)
