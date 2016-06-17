@@ -41,13 +41,10 @@ def round_funct(argv, logger):
         print("************************************************************")
         print(conf.target_url)
         print("************************************************************")
-        # (source, history) = Request.authenticate(session=session, payload=conf.payload, filter_code=conf.filter_code, target_url=conf.target_url, auth=conf.auth)
         (source, history) = Request.authenticate(session=session, config=conf)
         linktexts = Request.find_linktexts(source=source)
         if conf.depth > 0:
-            # history.update(Request.navigate(session=session, multithread=conf.multithread, threshold=conf.threshold, linktexts=linktexts, filter_code=conf.filter_code, current_url=conf.target_url, domain_url=conf.domain_url, timeout=conf.timeout, depth=conf.depth))
             history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
-        # Request.file_generator(history=history, logger=logger, filter_code=conf.filter_code, output_format=conf.output_format, output_filename=tag, sort=conf.sort)
         Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
         session.close()
 

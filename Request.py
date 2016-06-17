@@ -270,7 +270,6 @@ def navigate(session, linktexts, config, history={}):
         print("************************************************************")
         print(sub_url)
         print("************************************************************")
-        # navigate(session=session, multithread=multithread, threshold=threshold, linktexts=sub_linktexts, filter_code=filter_code,  history=history, current_url=sub_url, domain_url=domain_url, timeout=timeout, depth=depth)
         # config.current_url will record the latest excuted url
         config.current_url = sub_url
         navigate(session=session, linktexts=sub_linktexts, config=config, history=history)
