@@ -55,11 +55,16 @@ def round_funct(argv, logger):
     print("Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n")
 
 """
-Main function
 """
-if __name__ == "__main__":
+def main():
     argv = sys.argv
 
     logger = log_initialize(".requests.log")
     args = arg_initialize(argv)
     round_funct(args.tags, logger)
+
+"""
+Main function
+"""
+if __name__ == "__main__":
+    main()
