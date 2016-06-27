@@ -24,14 +24,17 @@ Argument init
 """
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to parse the website.")
-    return parser
+    parser.add_argument("tags", nargs="*", default=["DEFAULT"], help="Specify the tags in the conf.")
+    parser.add_argument("--url", default="https://itriweb.itri.org.tw", help="Specify the target url. (Not implement)")
+    parser.add_argument("--depth", default=2, type=int, help="Specify the depth you want. (Default is 2, not implement)")
+    return parser.parse_args()
 
 """
 Round function
 """
 def round_funct(argv, logger):
     total_start_time = Request.datetime.datetime.now()
-    for tag in argv[1:]:
+    for tag in argv[0:]:
         history = {}
 
         print("["+str(tag)+"]")
@@ -58,5 +61,5 @@ if __name__ == "__main__":
     argv = sys.argv
 
     logger = log_initialize(".requests.log")
-    parser = arg_initialize(argv)
-    round_funct(argv, logger)
+    args = arg_initialize(argv)
+    round_funct(args.tags, logger)
