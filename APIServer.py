@@ -39,7 +39,7 @@ def api_execute_adv():
         os.fork()
 
         if pid != os.getpid():
-            os.system("./Main.py --tag COMMANDLINE --no-auth --url "+url+" --filename "+title)
+            os.system("./Main.py commandline --tag COMMANDLINE --no-auth --url "+url+" --filename "+title+" > /dev/null 2>&1")
             os.system("./Mail.py --tag COMMANDLINE --sender suyihui.900360@itri.org.tw --receiver "+mailto+" --ccreceiver "+mailcc+" --secretccreceiver suyihui.900360@itri.org.tw --files "+title+".csv")
             quit()
 
