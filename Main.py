@@ -24,23 +24,54 @@ Argument init
 """
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to parse the website.")
-    parser.add_argument("tags", nargs="*", default=["DEFAULT"], help="Specify the tags in the conf.")
-    parser.add_argument("--url", default="https://itriweb.itri.org.tw", help="Specify the target url. (Not implement)")
-    parser.add_argument("--depth", default=2, type=int, help="Specify the depth you want. (Default is 2, not implement)")
+    subparsers = parser.add_subparsers(dest="subparser_name", help="2 subparsers provided.")
+    subparsers.required = True
+    config_subparser = subparsers.add_parser("config", help="Running specified config tag.")
+    config_subparser.add_argument("tags", nargs="*", help="Specify tags in conf.")
+    commandline_subparser = subparsers.add_parser("commandline", help="Running specified commandline option.")
+    commandline_subparser.add_argument("--tag", default="DEFAULT", help="Template tag for commandline execution.", required=True)
+    commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
+    commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
+    commandline_subparser.add_argument("--auth", dest="auth", action="store_true")
+    commandline_subparser.add_argument("--no-auth", dest="auth", action="store_false")
+    commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
     return parser.parse_args()
 
 """
 Round function
 """
-def round_funct(argv, logger):
-    total_start_time = Request.datetime.datetime.now()
-    for tag in argv[0:]:
-        history = {}
+def round_funct(args, logger, from_commandline=False):
+    if not from_commandline:
+        for tag in args.tags[0:]:
+            conf = Request.load_config(filename=".requests.conf", tag=tag)
 
-        print("["+str(tag)+"]")
-        conf = Request.load_config(filename=".requests.conf", tag=tag)
+            Request.initialize()
+            session = Request.requests.Session()
+            print("["+str(tag)+"]")
+            print("************************************************************")
+            print(conf.target_url)
+            print("************************************************************")
+            (source, history) = Request.authenticate(session=session, config=conf)
+            linktexts = Request.find_linktexts(source=source)
+            if conf.depth > 0:
+                history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
+            Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
+            session.close()
+    else:
+        tag = args.filename
+        conf = Request.load_config(filename=".requests.conf", tag=args.tag)
 
+        conf.auth = args.auth
+        conf.target_url = args.url
+        conf.current_url = args.url
+        conf.domain_url = Request.pattern_generator(args.url)
+
+        if args.depth >= 0:
+            conf.depth = args.depth
+
+        Request.initialize()
         session = Request.requests.Session()
+        print("["+str(tag)+"] using "+args.tag+" as template tag")
         print("************************************************************")
         print(conf.target_url)
         print("************************************************************")
@@ -51,9 +82,6 @@ def round_funct(argv, logger):
         Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
         session.close()
 
-    total_end_time = Request.datetime.datetime.now()
-    print("Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n")
-
 """
 """
 def main():
@@ -61,7 +89,14 @@ def main():
 
     logger = log_initialize(".requests.log")
     args = arg_initialize(argv)
-    round_funct(args.tags, logger)
+
+    total_start_time = Request.datetime.datetime.now()
+    if args.subparser_name == "config":
+        round_funct(args, logger)
+    elif args.subparser_name == "commandline":
+        round_funct(args, logger, from_commandline=True)
+    total_end_time = Request.datetime.datetime.now()
+    print("Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n")
 
 """
 Main function

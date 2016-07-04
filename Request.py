@@ -22,7 +22,6 @@ Global variable
 total_links = 0
 total_output_links = 0
 history_queue = queue.Queue(2000)
-history_queue_lock = threading.Lock()
 
 """
 Thread class
@@ -55,6 +54,16 @@ class Config():
         self.filter_code = filter_code
         self.output_format = output_format
         self.sort = sort
+
+"""
+Initialize variable
+"""
+def initialize():
+    global total_links, total_output_links, history_queue
+
+    total_links = 0
+    total_output_links = 0
+    history_queue = queue.Queue(2000)
 
 """
 Multithreaded HTTPRequest
@@ -128,12 +137,20 @@ def load_config(filename, tag):
     conf.read(filename)
     conf.sections()
 
-    auth = load(conf, tag, "AUTH")
-    multithread = load(conf, tag, "MULTITHREAD")
+    _auth = load(conf, tag, "AUTH")
+    if _auth == "YES":
+        auth = True
+    else:
+        auth = False
+    _multithread = load(conf, tag, "MULTITHREAD")
+    if _multithread == "YES":
+        multithread = True
+    else:
+        multithread = False
     threshold = load(conf, tag, "THRESHOLD", int)
     target_url = load(conf, tag, "TARGET_URL")
     current_url = target_url
-    if auth == "YES":
+    if auth:
         user = load(conf, tag, "USER")
         password = load(conf, tag, "PASS")
         payload = {"target": target_url, "USER": user, "PASSWORD": password}
@@ -163,7 +180,7 @@ def navigate(session, linktexts, config, history={}):
     total_links += total_linktexts
     counter = 1
 
-    if config.multithread == "YES":
+    if config.multithread:
         thread_id = 0
         threads = []
         for linktext in linktexts:
@@ -307,7 +324,7 @@ def authenticate(session, config):
     start_time = datetime.datetime.now()
     try:
         r = session.get(config.target_url)
-        if config.auth == "YES":
+        if config.auth:
             r = session.post(r.url, data=config.payload)
         total_links += 1
         history[config.target_url]["current_url"] = r.url
@@ -318,26 +335,26 @@ def authenticate(session, config):
     except requests.exceptions.HTTPError as e:
         history[config.target_url]["status_code"] = -2
         history[config.target_url]["reason"] = e
-        quit()
+        return ("", history)
     except requests.exceptions.Timeout as e:
         history[config.target_url]["status_code"] = -3
         history[config.target_url]["reason"] = e
-        quit()
+        return ("", history)
     except requests.exceptions.TooManyRedirects as e:
         history[config.target_url]["status_code"] = -4
         history[config.target_url]["reason"] = e
-        quit()
+        return ("", history)
     except requests.exceptions.ConnectionError as e:
         history[config.target_url]["status_code"] = -5
         history[config.target_url]["reason"] = e
-        quit()
+        return ("", history)
     except requests.exceptions.InvalidSchema as e:
         history[config.target_url]["status_code"] = -6
         history[config.target_url]["reason"] = e
-        quit()
+        return ("", history)
     except:
         history[config.target_url]["status_code"] = -7
-        quit()
+        return ("", history)
 
     end_time = datetime.datetime.now()
     time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
@@ -369,7 +386,7 @@ def file_generator(history, logger, config, output_filename):
     if total_output_links == 0:
         return
 
-    logger.warn("["+output_filename+"] Genrating output files...")
+    logger.warn("["+output_filename+"] "+str(config.filter_code)+" "+str(total_links)+"/"+str(total_output_links)+" Genrating output files...")
     if "XML" in config.output_format:
         if config.sort == "URL":
             time = etree.Element("time")
@@ -403,6 +420,7 @@ def file_generator(history, logger, config, output_filename):
             tree = etree.ElementTree(time)
             with open(output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
+                xmlfile.close()
         elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             time = etree.Element("time")
@@ -436,6 +454,7 @@ def file_generator(history, logger, config, output_filename):
             tree = etree.ElementTree(time)
             with open(output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
+                xmlfile.close()
 
     if "CSV" in config.output_format:
         if config.sort == "URL":
@@ -453,6 +472,7 @@ def file_generator(history, logger, config, output_filename):
                             print(history[log])
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
+                csvfile.close()
         elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             with open(output_filename+".csv", "a") as csvfile:
@@ -469,6 +489,7 @@ def file_generator(history, logger, config, output_filename):
                             print(log)
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
+                csvfile.close()
 
     if "JSON" in config.output_format:
         print("Not implement")

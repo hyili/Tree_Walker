@@ -18,18 +18,19 @@ Argument init
 """
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to send email.")
-    parser.add_argument("--tag", default="DEFAULT", help="Specify tag in the conf.")
-    parser.add_argument("--offset", default=2, type=int, help="Specify timing offset.")
-    parser.add_argument("--sender", help="Specify sender email address.")
-    parser.add_argument("--receiver", nargs="*", default=[], help="Specify receiver email addresses.")
-    parser.add_argument("--ccreceiver", nargs="*", default=[], help="Specify ccreceiver email addresses.")
-    parser.add_argument("--files", nargs="*", help="Specify files that want to attach.")
+    parser.add_argument("--tag", help="Specify tag in the conf.", required=True)
+    parser.add_argument("--offset", type=int, help="Specify timing offset.")
+    parser.add_argument("--sender", help="Specify sender email address.", required=True)
+    parser.add_argument("--receiver", nargs="*", help="Specify receiver email addresses.", required=True)
+    parser.add_argument("--ccreceiver", nargs="*", default=[], help="Specify ccreceiver email addresses. Default is nothing.")
+    parser.add_argument("--secretccreceiver", nargs="*", default=[], help="Specify secret ccreceiver email addresses. Default is nothing.")
+    parser.add_argument("--files", nargs="*", default=[], help="Specify files that want to attach.")
     return parser.parse_args()
 
 """
 Send the Email
 """
-def send_mail(sender, receivers, ccreceivers, filenames, username, password):
+def send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password):
     msg = MIMEMultipart()
     msg["From"] = sender
     msg["To"] = ", ".join(receivers)
@@ -51,7 +52,7 @@ def send_mail(sender, receivers, ccreceivers, filenames, username, password):
         smtp = smtplib.SMTP("smtpx.itri.org.tw")
         smtp.ehlo(name="itri.org.tw")
         smtp.login(user=username, password=password)
-        smtp.sendmail(from_addr=sender, to_addrs=receivers+ccreceivers, msg=msg.as_string())
+        smtp.sendmail(from_addr=sender, to_addrs=receivers+ccreceivers+secretccreceivers, msg=msg.as_string())
     except Exception as e:
         print(e)
         quit()
@@ -64,11 +65,10 @@ def main():
     args = arg_initialize(argv)
 
     tag = args.tag
-    offset = args.offset
     sender = args.sender
     receivers = args.receiver
     ccreceivers = args.ccreceiver
-    index = datetime.datetime.now()-datetime.timedelta(hours=offset)
+    secretccreceivers = args.secretccreceiver
 
     conf = Request.load_config(".requests.conf", tag)
     username = conf.payload["USER"]
@@ -76,22 +76,29 @@ def main():
 
     filenames = args.files
 
-    count = 0
-    log = os.popen("cat .requests.log")
-    for line in log:
-        part1 = line.split(" ")
-        if part1[7] != "["+tag+"]":
-            continue
-        part2 = part1[1].split(",")
-        log_time = datetime.datetime.strptime(part1[0]+" "+part2[0], "%Y-%m-%d %H:%M:%S")
-        if index <= log_time:
-            count += 1
+    if args.offset is not None:
+        offset = args.offset
+        index = datetime.datetime.now()-datetime.timedelta(hours=offset)
 
-    if count > 2:
-        send_mail(sender, receivers, ccreceivers, filenames, username, password)
-        print("Mail sent")
+        count = 0
+        log = os.popen("cat .requests.log")
+        for line in log:
+            part1 = line.split(" ")
+            if part1[7] != "["+tag+"]":
+                continue
+            part2 = part1[1].split(",")
+            log_time = datetime.datetime.strptime(part1[0]+" "+part2[0], "%Y-%m-%d %H:%M:%S")
+            if index <= log_time:
+                count += 1
+
+        if count > 2:
+            send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password)
+            print("Mail sent.")
+        else:
+            print("Do nothing, --help for details.")
     else:
-        print("Nothing")
+        send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password)
+        print("Mail sent.")
 
 """
 Main function
