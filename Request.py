@@ -18,6 +18,13 @@ import queue
 
 """
 Global variable
+- total_links
+    - this is used to record the total number of parsed links.
+- total_output_links
+    - this is used to record the total number of parsed links that are NOT in
+    filter_code.
+- history_queue
+    - this is the message queue between thread to transfer history contains.
 """
 total_links = 0
 total_output_links = 0
@@ -334,26 +341,38 @@ def authenticate(session, config):
         quit()
     except requests.exceptions.HTTPError as e:
         history[config.target_url]["status_code"] = -2
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.Timeout as e:
         history[config.target_url]["status_code"] = -3
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.TooManyRedirects as e:
         history[config.target_url]["status_code"] = -4
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.ConnectionError as e:
         history[config.target_url]["status_code"] = -5
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.InvalidSchema as e:
         history[config.target_url]["status_code"] = -6
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         history[config.target_url]["reason"] = e
         return ("", history)
     except:
         history[config.target_url]["status_code"] = -7
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
         return ("", history)
 
     end_time = datetime.datetime.now()

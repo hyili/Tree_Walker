@@ -38,26 +38,31 @@ def arg_initialize(argv):
     return parser.parse_args()
 
 """
+Parse function
+"""
+def parse_funct(tag, conf, logger):
+    Request.initialize()
+    session = Request.requests.Session()
+    print("["+str(tag)+"]")
+    print("************************************************************")
+    print(conf.target_url)
+    print("************************************************************")
+    (source, history) = Request.authenticate(session=session, config=conf)
+    linktexts = Request.find_linktexts(source=source)
+    if conf.depth > 0:
+        history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
+    Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
+    session.close()
+
+"""
 Round function
 """
-def round_funct(args, logger, from_commandline=False):
-    if not from_commandline:
+def round_funct(args, logger):
+    if args.subparser_name == "config":
         for tag in args.tags[0:]:
             conf = Request.load_config(filename=".requests.conf", tag=tag)
-
-            Request.initialize()
-            session = Request.requests.Session()
-            print("["+str(tag)+"]")
-            print("************************************************************")
-            print(conf.target_url)
-            print("************************************************************")
-            (source, history) = Request.authenticate(session=session, config=conf)
-            linktexts = Request.find_linktexts(source=source)
-            if conf.depth > 0:
-                history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
-            Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
-            session.close()
-    else:
+            parse_funct(tag, conf, logger)
+    elif args.subparser_name == "commandline":
         tag = args.filename
         conf = Request.load_config(filename=".requests.conf", tag=args.tag)
 
@@ -69,18 +74,7 @@ def round_funct(args, logger, from_commandline=False):
         if args.depth >= 0:
             conf.depth = args.depth
 
-        Request.initialize()
-        session = Request.requests.Session()
-        print("["+str(tag)+"] using "+args.tag+" as template tag")
-        print("************************************************************")
-        print(conf.target_url)
-        print("************************************************************")
-        (source, history) = Request.authenticate(session=session, config=conf)
-        linktexts = Request.find_linktexts(source=source)
-        if conf.depth > 0:
-            history.update(Request.navigate(session=session, linktexts=linktexts, config=conf))
-        Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
-        session.close()
+        parse_funct(tag, conf, logger)
 
 """
 """
@@ -91,10 +85,7 @@ def main():
     args = arg_initialize(argv)
 
     total_start_time = Request.datetime.datetime.now()
-    if args.subparser_name == "config":
-        round_funct(args, logger)
-    elif args.subparser_name == "commandline":
-        round_funct(args, logger, from_commandline=True)
+    round_funct(args, logger)
     total_end_time = Request.datetime.datetime.now()
     print("Total time costs: "+str(float((total_end_time-total_start_time).seconds) + float((total_end_time-total_start_time).microseconds) / 1000000.0)+"sec\n")
 
