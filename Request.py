@@ -15,6 +15,8 @@ from lxml import etree
 import csv
 import threading
 import queue
+import logging
+import argparse
 
 """
 Global variable
@@ -34,27 +36,29 @@ history_queue = queue.Queue(2000)
 Thread class
 """
 class HTTPRequest(threading.Thread):
-    def __init__(self, thread_id, thread_name, session, timeout, q):
+    def __init__(self, thread_id, thread_name, session, header, timeout, q):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
         self.session = session
+        self.header = header
         self.timeout = timeout
         self.q = q
     def run(self):
-        send_request(session=self.session, timeout=self.timeout, url=self.thread_name, q=self.q)
+        send_request(session=self.session, header=self.header, timeout=self.timeout, url=self.thread_name, q=self.q)
 
 """
 Config class
 """
 class Config():
-    def __init__(self, auth, multithread, threshold, target_url, current_url, domain_url, payload, depth, timeout, filter_code, output_format, sort):
+    def __init__(self, auth, multithread, threshold, target_url, current_url, domain_url, header, payload, depth, timeout, filter_code, output_format, sort):
         self.auth = auth
         self.multithread = multithread
         self.threshold = threshold
         self.target_url = target_url
         self.current_url = current_url
         self.domain_url = domain_url
+        self.header = header
         self.payload = payload
         self.depth = depth
         self.timeout = timeout
@@ -73,9 +77,40 @@ def initialize():
     history_queue = queue.Queue(2000)
 
 """
+Logger init
+"""
+def log_initialize(logname):
+    logger = logging.getLogger("requests")
+    logger.setLevel(logging.WARNING)
+    file_handler = logging.FileHandler(logname)
+    file_handler.setLevel(logging.WARNING)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    return logger
+
+"""
+Argument init
+"""
+def arg_initialize(argv):
+    parser = argparse.ArgumentParser(description="Start to parse the website.")
+    subparsers = parser.add_subparsers(dest="subparser_name", help="2 subparsers provided.")
+    subparsers.required = True
+    config_subparser = subparsers.add_parser("config", help="Running specified config tag.")
+    config_subparser.add_argument("tags", nargs="*", help="Specify tags in conf.")
+    commandline_subparser = subparsers.add_parser("commandline", help="Running specified commandline option.")
+    commandline_subparser.add_argument("--tag", default="DEFAULT", help="Template tag for commandline execution.", required=True)
+    commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
+    commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
+    commandline_subparser.add_argument("--auth", dest="auth", action="store_true")
+    commandline_subparser.add_argument("--no-auth", dest="auth", action="store_false")
+    commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
+    return parser.parse_args()
+
+"""
 Multithreaded HTTPRequest
 """
-def send_request(session, timeout, url, q):
+def send_request(session, header, timeout, url, q):
     current_url = ""
     status_code = -1
     time_cost = -1
@@ -84,7 +119,7 @@ def send_request(session, timeout, url, q):
 
     start_time = datetime.datetime.now()
     try:
-        r = session.get(url, timeout=timeout)
+        r = session.get(url, timeout=timeout, header=header)
         status_code = r.status_code
         current_url = str(r.url)
     except KeyboardInterrupt:
@@ -128,7 +163,7 @@ def load(conf, tag, option, funct=None):
         try:
             result = conf.get("DEFAULT", option)
         except:
-            print("Default option "+option+" broken")
+            #print("Default option "+option+" broken")
             quit()
 
     if funct is None:
@@ -160,8 +195,10 @@ def load_config(filename, tag):
     if auth:
         user = load(conf, tag, "USER")
         password = load(conf, tag, "PASS")
+        header = {"User-Agent": "Mozilla/5.0"}
         payload = {"target": target_url, "USER": user, "PASSWORD": password}
     else:
+        header = {"user-agent": "Mozilla/5.0"}
         payload = {"target": target_url}
     depth = load(conf, tag, "DEPTH", int)
     timeout = load(conf, tag, "TIMEOUT", int)
@@ -172,12 +209,12 @@ def load_config(filename, tag):
     output_format = [str(i) for i in output_formats.split(",")]
     sort = load(conf, tag, "SORT")
 
-    return Config(auth, multithread, threshold, target_url, current_url, domain_url, payload, depth, timeout, filter_code, output_format, sort)
+    return Config(auth, multithread, threshold, target_url, current_url, domain_url, header, payload, depth, timeout, filter_code, output_format, sort)
 
 """
 Navigate into the target website
 """
-def navigate(session, linktexts, config, history={}):
+def navigate(session, linktexts, config, history={}, decode=None):
     global total_links, total_output_links, history_queue
 
     config.depth -= 1
@@ -200,7 +237,7 @@ def navigate(session, linktexts, config, history={}):
             else:
                 history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
-            thread = HTTPRequest(thread_id, sub_url, session, config.timeout, history_queue)
+            thread = HTTPRequest(thread_id, sub_url, session, config.header, config.timeout, history_queue)
             thread.start()
             threads.append(thread)
             thread_id += 1
@@ -232,18 +269,18 @@ def navigate(session, linktexts, config, history={}):
                 if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
-                            links.append((r.url, r.content.decode(r.encoding)))
+                            if decode is None:
+                                links.append((r.url, r.content.decode(r.encoding)))
+                            else:
+                                links.append((r.url, r.content.decode(decode)))
                         except:
                             links.append((r.url, r.text))
 
-            if history[sub_url]["status_code"] in config.filter_code:
-                continue
-            elif history[sub_url]["status_code"] == -6:
-                del history[sub_url]
-            else:
+            if history[sub_url]["status_code"] not in config.filter_code and history[sub_url]["status_code"] != -6:
                 total_output_links += 1
-                print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
-                print(history[sub_url]["status_code"])
+
+            if history[sub_url]["status_code"] == -6:
+                del history[sub_url]
 
     else:
         for linktext in linktexts:
@@ -259,7 +296,7 @@ def navigate(session, linktexts, config, history={}):
             else:
                 history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
-            send_request(session, config.timeout, sub_url, history_queue)
+            send_request(session, config.header, config.timeout, sub_url, history_queue)
             result = history_queue.get()
             history[sub_url]["current_url"] = result["current_url"]
             history[sub_url]["status_code"] = result["status_code"]
@@ -271,18 +308,18 @@ def navigate(session, linktexts, config, history={}):
                 if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
                     if r is not None:
                         try:
-                            links.append((r.url, r.content.decode(r.encoding)))
+                            if decode is None:
+                                links.append((r.url, r.content.decode(r.encoding)))
+                            else:
+                                links.append((r.url, r.content.decode(decode)))
                         except:
                             links.append((r.url, r.text))
 
-            if history[sub_url]["status_code"] in config.filter_code:
-                continue
-            elif history[sub_url]["status_code"] == -6:
-                del history[sub_url]
-            else:
+            if history[sub_url]["status_code"] not in config.filter_code and history[sub_url]["status_code"] != -6:
                 total_output_links += 1
-                print(history[sub_url]["link_url"]+" "+history[sub_url]["link_name"])
-                print(history[sub_url]["status_code"])
+
+            if history[sub_url]["status_code"] == -6:
+                del history[sub_url]
 
     if config.depth <= 0:
         config.depth += 1
@@ -291,10 +328,6 @@ def navigate(session, linktexts, config, history={}):
     for link in links:
         sub_url = link[0]
         sub_linktexts = find_linktexts(source=link[1])
-        print("************************************************************")
-        print(sub_url)
-        print("************************************************************")
-        # config.current_url will record the latest excuted url
         config.current_url = sub_url
         navigate(session=session, linktexts=sub_linktexts, config=config, history=history)
 
@@ -323,17 +356,17 @@ def factor_url(current_url, sub_url):
 Will be forwarded to another authentication page
 Then, login with payload information
 """
-def authenticate(session, config):
+def authenticate(session, config, decode=None):
     global total_links, total_output_links
     history = {}
     history[config.target_url] = {"parent_url": [], "link_url": str(config.target_url), "link_name": "", "current_url": "", "status_code": -1, "time_cost": -1, "reason": ""}
 
     start_time = datetime.datetime.now()
     try:
-        r = session.get(config.target_url)
-        if config.auth:
-            r = session.post(r.url, data=config.payload)
         total_links += 1
+        r = session.get(config.target_url, headers=config.header)
+        if config.auth:
+            r = session.post(r.url, headers=config.header, data=config.payload)
         history[config.target_url]["current_url"] = r.url
         history[config.target_url]["status_code"] = r.status_code
     except KeyboardInterrupt:
@@ -383,7 +416,10 @@ def authenticate(session, config):
         total_output_links += 1
 
     try:
-        ret_val = (r.content.decode(r.encoding), history)
+        if decode is None:
+            ret_val = (r.content.decode(r.encoding), history)
+        else:
+            ret_val = (r.content.decode(decode), history)
     except:
         ret_val = (r.text, history)
 
@@ -405,7 +441,7 @@ def file_generator(history, logger, config, output_filename):
     if total_output_links == 0:
         return
 
-    logger.warn("["+output_filename+"] "+str(config.filter_code)+" "+str(total_links)+"/"+str(total_output_links)+" Genrating output files...")
+    logger.warn("["+output_filename+"] "+str(config.filter_code)+" "+str(total_output_links)+"/"+str(total_links)+" Genrating output files...")
     if "XML" in config.output_format:
         if config.sort == "URL":
             time = etree.Element("time")
@@ -434,7 +470,7 @@ def file_generator(history, logger, config, output_filename):
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(history[log]["reason"]))
                     except:
-                        print (history[log])
+                        #print (history[log])
                         continue
             tree = etree.ElementTree(time)
             with open(output_filename+".xml", "ab") as xmlfile:
@@ -468,7 +504,7 @@ def file_generator(history, logger, config, output_filename):
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(log["reason"]))
                     except:
-                        print (log)
+                        #print(log)
                         continue
             tree = etree.ElementTree(time)
             with open(output_filename+".xml", "ab") as xmlfile:
@@ -488,7 +524,7 @@ def file_generator(history, logger, config, output_filename):
                         try:
                             writer.writerow({"datetime": date_time, "parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
                         except:
-                            print(history[log])
+                            #print(history[log])
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
                 csvfile.close()
@@ -505,13 +541,16 @@ def file_generator(history, logger, config, output_filename):
                         try:
                             writer.writerow({"datetime": date_time, "parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
                         except:
-                            print(log)
+                            #print(log)
                             continue
                 writer.writerow({"datetime": date_time, "total_links": str(total_links), "total_output_links": str(total_output_links)})
                 csvfile.close()
 
     if "JSON" in config.output_format:
-        print("Not implement")
+        #print("Not implement")
+        pass
+    if "STDOUT" in config.output_format:
+        print(history[config.target_url]["status_code"])
 
 """
 transform the target_url to domain_url in regular expression format

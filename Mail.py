@@ -24,21 +24,24 @@ def arg_initialize(argv):
     parser.add_argument("--receiver", nargs="*", help="Specify receiver email addresses.", required=True)
     parser.add_argument("--ccreceiver", nargs="*", default=[], help="Specify ccreceiver email addresses. Default is nothing.")
     parser.add_argument("--secretccreceiver", nargs="*", default=[], help="Specify secret ccreceiver email addresses. Default is nothing.")
+    parser.add_argument("--subject", default="", help="Specify the email subject.")
+    parser.add_argument("--content", default="", help="Specify the email content.")
     parser.add_argument("--files", nargs="*", default=[], help="Specify files that want to attach.")
     return parser.parse_args()
 
 """
 Send the Email
 """
-def send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password):
+def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, content, filenames, username, password):
     msg = MIMEMultipart()
     msg["From"] = sender
     msg["To"] = ", ".join(receivers)
     msg["Cc"] = ", ".join(ccreceivers)
-    msg["Subject"] = "[Warning] Tree_Walker"
-    msg.attach(MIMEText("See attached files for detail."))
+    msg["Subject"] = subject
+    _msg = MIMEText(content)
+    _msg["Content-Type"] = "text/html"
+    msg.attach(_msg)
     for filename in filenames:
-        print(filename)
         try:
             with open(filename, "rb") as attached_file:
                 att = MIMEApplication(attached_file.read(), Name=filename)
@@ -69,6 +72,8 @@ def main():
     receivers = args.receiver
     ccreceivers = args.ccreceiver
     secretccreceivers = args.secretccreceiver
+    subject = args.subject
+    content = args.content
 
     conf = Request.load_config(".requests.conf", tag)
     username = conf.payload["USER"]
@@ -92,12 +97,12 @@ def main():
                 count += 1
 
         if count > 2:
-            send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password)
+            send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, content, filenames, username, password)
             print("Mail sent.")
         else:
             print("Do nothing, --help for details.")
     else:
-        send_mail(sender, receivers, ccreceivers, secretccreceivers, filenames, username, password)
+        send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, content, filenames, username, password)
         print("Mail sent.")
 
 """
