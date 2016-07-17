@@ -59,11 +59,13 @@ Round function
 def round_funct(args, logger):
     if args.subparser_name == "config":
         for tag in args.tags[0:]:
-            conf = Request.load_config(filename=".requests.conf", tag=tag)
+            conf = Request.Config(filename=".requests.conf", tag=tag)
+            conf.load_config()
             parse_funct(tag, conf, logger)
     elif args.subparser_name == "commandline":
         tag = args.filename
-        conf = Request.load_config(filename=".requests.conf", tag=args.tag)
+        conf = Request.Config(filename=".requests.conf", tag=args.tag)
+        conf.load_config()
 
         conf.auth = args.auth
         conf.title = args.title

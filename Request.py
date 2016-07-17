@@ -44,31 +44,162 @@ class HTTPRequest(threading.Thread):
         self.header = header
         self.timeout = timeout
         self.q = q
+
+    def send_request(self, session, header, timeout, url, q):
+        current_url = ""
+        status_code = -1
+        time_cost = -1
+        reason = ""
+        r = None
+
+        start_time = datetime.datetime.now()
+        try:
+            r = session.get(url, timeout=timeout, headers=header)
+            status_code = r.status_code
+            current_url = str(r.url)
+        except KeyboardInterrupt:
+            print("Bye~ Bye~\n")
+            quit()
+        except requests.exceptions.HTTPError as e:
+            status_code = -2
+            reason = e
+        except requests.exceptions.Timeout as e:
+            status_code = -3
+            reason = e
+        except requests.exceptions.TooManyRedirects as e:
+            status_code = -4
+            reason = e
+        except requests.exceptions.ConnectionError as e:
+            status_code = -5
+            reason = e
+        except requests.exceptions.InvalidSchema as e:
+            status_code = -6
+            reason = e
+        except Exception as e:
+            status_code = -7
+            reason = e
+
+        end_time = datetime.datetime.now()
+        time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+
+        q.put({"sub_url": url, "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
+
     def run(self):
-        send_request(session=self.session, header=self.header, timeout=self.timeout, url=self.thread_name, q=self.q)
+        self.send_request(session=self.session, header=self.header, timeout=self.timeout, url=self.thread_name, q=self.q)
 
 """
 Config class
 """
 class Config():
-    def __init__(self, auth, multithread, threshold, title, email, unit, print_depth, target_url, current_url, domain_url, header, payload, depth, timeout, filter_code, output_format, sort):
-        self.auth = auth
-        self.multithread = multithread
-        self.threshold = threshold
-        self.title = title
-        self.email = email
-        self.unit = unit
-        self.print_depth = print_depth
-        self.target_url = target_url
-        self.current_url = current_url
-        self.domain_url = domain_url
-        self.header = header
-        self.payload = payload
-        self.depth = depth
-        self.timeout = timeout
-        self.filter_code = filter_code
-        self.output_format = output_format
-        self.sort = sort
+    def __init__(self, tag, filename):
+        self.tag = tag
+        self.filename = filename
+        self.title = ""
+        self.email = ""
+        self.unit = ""
+
+    def load(self, conf, tag, option, funct=None):
+        try:
+            result = conf.get(tag, option)
+        except configparser.NoSectionError as e:
+            print(e)
+            quit()
+        except:
+            try:
+                result = conf.get("DEFAULT", option)
+            except:
+                quit()
+
+        if funct is None:
+            return result
+        else:
+            return funct(result)
+
+    def load_config(self):
+        conf = configparser.ConfigParser()
+        conf.read(self.filename)
+        conf.sections()
+
+        _auth = self.load(conf, self.tag, "AUTH")
+        if _auth == "YES":
+            self.auth = True
+        else:
+            self.auth = False
+        _multithread = self.load(conf, self.tag, "MULTITHREAD")
+        if _multithread == "YES":
+            self.multithread = True
+        else:
+            self.multithread = False
+        self.threshold = self.load(conf, self.tag, "THRESHOLD", int)
+        print_depths = self.load(conf, self.tag, "PRINT_DEPTH")
+        self.print_depth = [int(i) for i in print_depths.split(",")]
+        self.target_url = self.load(conf, self.tag, "TARGET_URL")
+        self.current_url = self.target_url
+        if self.auth:
+            self.user = self.load(conf, self.tag, "USER")
+            self.password = self.load(conf, self.tag, "PASS")
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.payload = {"USER": self.user, "PASSWORD": self.password}
+        else:
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.payload = {}
+        self.depth = self.load(conf, self.tag, "DEPTH", int)
+        self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
+        self.domain_url = self.load(conf, self.tag, "DOMAIN_URL", pattern_generator)
+        filter_codes = self.load(conf, self.tag, "FILTER")
+        self.filter_code = [int(i) for i in filter_codes.split(",")]
+        output_formats = self.load(conf, self.tag, "FORMAT")
+        self.output_format = [str(i) for i in output_formats.split(",")]
+        self.sort = self.load(conf, self.tag, "SORT")
+
+"""
+history handler
+"""
+def history_handler(init=False, history={}, url="", parent_url=[], link_url="", link_name="", current_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
+    if url == "" or history is None:
+        print("History update failed.")
+        return history
+
+    if init:
+        history[url] = {}
+        history[url]["parent_url"] = parent_url
+        history[url]["link_url"] = link_url
+        history[url]["link_name"] = link_name
+        history[url]["current_url"] = current_url
+        history[url]["status_code"] = status_code
+        history[url]["contained_broken_link"] = contained_broken_link
+        history[url]["admin_email"] = admin_email
+        history[url]["admin_unit"] = admin_unit
+        history[url]["time_cost"] = time_cost
+        history[url]["reason"] = reason
+        history[url]["depth"] = depth
+    else:
+        if url not in history:
+            history_handler(init=True, history=history, url=url)
+        if len(parent_url) != 0:
+            history[url]["parent_url"]+parent_url
+        if link_url != "":
+            history[url]["link_url"] = link_url
+        if link_name != "":
+            history[url]["link_name"] = link_name
+        if current_url != "":
+            history[url]["current_url"] = current_url
+        if status_code != -1:
+            history[url]["status_code"] = status_code
+        if contained_broken_link != 0:
+            history[url]["contained_broken_link"] = contained_broken_link
+        if admin_email != "":
+            history[url]["admin_email"] = admin_email
+        if admin_unit != "":
+            history[url]["admin_unit"] = admin_unit
+        if time_cost != -1:
+            history[url]["time_cost"] = time_cost
+        if reason != "":
+            history[url]["reason"] = reason
+        if depth != -1:
+            history[url]["depth"] = depth
+
+    return history
 
 """
 Initialize variable
@@ -81,49 +212,6 @@ def initialize():
     history_queue = queue.Queue(2000)
 
 """
-Multithreaded HTTPRequest
-"""
-def send_request(session, header, timeout, url, q):
-    current_url = ""
-    status_code = -1
-    time_cost = -1
-    reason = ""
-    r = None
-
-    start_time = datetime.datetime.now()
-    try:
-        r = session.get(url, timeout=timeout, headers=header)
-        status_code = r.status_code
-        current_url = str(r.url)
-    except KeyboardInterrupt:
-        print("Bye~ Bye~\n")
-        quit()
-    except requests.exceptions.HTTPError as e:
-        status_code = -2
-        reason = e
-    except requests.exceptions.Timeout as e:
-        status_code = -3
-        reason = e
-    except requests.exceptions.TooManyRedirects as e:
-        status_code = -4
-        reason = e
-    except requests.exceptions.ConnectionError as e:
-        status_code = -5
-        reason = e
-    except requests.exceptions.InvalidSchema as e:
-        status_code = -6
-        reason = e
-        # do not record
-    except Exception as e:
-        status_code = -7
-        reason = e
-
-    end_time = datetime.datetime.now()
-    time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-
-    q.put({"sub_url": url, "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
-
-"""
 Selenium Web Driver
 - just use selenium for web url after redirecting
 """
@@ -131,72 +219,6 @@ def execute_script(url):
     wd = webdriver.Firefox()
     wd.get(url)
     return wd.current_url
-
-"""
-Load option from given tag
-"""
-def load(conf, tag, option, funct=None):
-    try:
-        result = conf.get(tag, option)
-    except configparser.NoSectionError as e:
-        print(e)
-        quit()
-    except:
-        try:
-            result = conf.get("DEFAULT", option)
-        except:
-            #print("Default option "+option+" broken")
-            quit()
-
-    if funct is None:
-        return result
-    else:
-        return funct(result)
-
-"""
-Load user and password from file
-"""
-def load_config(filename, tag):
-    conf = configparser.ConfigParser()
-    conf.read(filename)
-    conf.sections()
-
-    _auth = load(conf, tag, "AUTH")
-    if _auth == "YES":
-        auth = True
-    else:
-        auth = False
-    _multithread = load(conf, tag, "MULTITHREAD")
-    if _multithread == "YES":
-        multithread = True
-    else:
-        multithread = False
-    threshold = load(conf, tag, "THRESHOLD", int)
-    title = ""
-    email = ""
-    unit = ""
-    print_depths = load(conf, tag, "PRINT_DEPTH")
-    print_depth = [int(i) for i in print_depths.split(",")]
-    target_url = load(conf, tag, "TARGET_URL")
-    current_url = target_url
-    if auth:
-        user = load(conf, tag, "USER")
-        password = load(conf, tag, "PASS")
-        header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
-        payload = {"USER": user, "PASSWORD": password}
-    else:
-        header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
-        payload = {}
-    depth = load(conf, tag, "DEPTH", int)
-    timeout = load(conf, tag, "TIMEOUT", int)
-    domain_url = load(conf, tag, "DOMAIN_URL", pattern_generator)
-    filter_codes = load(conf, tag, "FILTER")
-    filter_code = [int(i) for i in filter_codes.split(",")]
-    output_formats = load(conf, tag, "FORMAT")
-    output_format = [str(i) for i in output_formats.split(",")]
-    sort = load(conf, tag, "SORT")
-
-    return Config(auth, multithread, threshold, title, email, unit, print_depth, target_url, current_url, domain_url, header, payload, depth, timeout, filter_code, output_format, sort)
 
 """
 Navigate into the target website
@@ -220,7 +242,7 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
                     history[sub_url]["parent_url"].append(str(config.current_url))
                 continue
             else:
-                history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "contained_broken_link": 0, "admin_email": "", "admin_unit": "", "time_cost": -1, "reason": "", "depth": depth}
+                history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[3]), depth=depth)
 
             thread = HTTPRequest(thread_id, sub_url, session, config.header, config.timeout, history_queue)
             thread.start()
@@ -244,10 +266,7 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
         while not history_queue.empty():
             result = history_queue.get()
             sub_url = result["sub_url"]
-            history[sub_url]["current_url"] = result["current_url"]
-            history[sub_url]["status_code"] = result["status_code"]
-            history[sub_url]["time_cost"] = result["time_cost"]
-            history[sub_url]["reason"] = result["reason"]
+            history = history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], time_cost=result["time_cost"], reason=result["reason"])
             r = result["response"]
 
             if history[sub_url]["status_code"] == 200:
@@ -269,48 +288,9 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
 
             if history[sub_url]["status_code"] == -6:
                 del history[sub_url]
-
     else:
-        for linktext in linktexts:
-            sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
-            counter += 1
-
-            sub_url = factor_url(config.current_url, linktext[1])
-
-            if sub_url in history:
-                if config.current_url not in history[sub_url]["parent_url"]:
-                    history[sub_url]["parent_url"].append(str(config.current_url))
-                continue
-            else:
-                history[sub_url] = {"parent_url": [str(config.current_url)], "link_url": str(sub_url), "link_name": linktext[3], "current_url": "", "status_code": -1, "contained_broken_link": 0, "admin_email": "", "admin_unit": "", "time_cost": -1, "reason": "", "depth": depth}
-
-            send_request(session, config.header, config.timeout, sub_url, history_queue)
-            result = history_queue.get()
-            history[sub_url]["current_url"] = result["current_url"]
-            history[sub_url]["status_code"] = result["status_code"]
-            history[sub_url]["time_cost"] = result["time_cost"]
-            history[sub_url]["reason"] = result["reason"]
-            r = result["response"]
-
-            if history[sub_url]["status_code"] == 200:
-                if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
-                    if r is not None:
-                        try:
-                            if decode is None:
-                                links.append((r.url, r.content.decode(r.encoding)))
-                            else:
-                                links.append((r.url, r.content.decode(decode)))
-                        except:
-                            links.append((r.url, r.text))
-
-            if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
-                history[config.current_url]["contained_broken_link"] += 1
-
-            if history[sub_url]["status_code"] not in config.filter_code and history[sub_url]["status_code"] != -6:
-                total_output_links += 1
-
-            if history[sub_url]["status_code"] == -6:
-                del history[sub_url]
+        print("Single thread deprecated. Using multithread instead.")
+        quit()
 
     if config.depth == depth:
         return history
@@ -347,8 +327,7 @@ Then, login with payload information
 """
 def authenticate(session, config, depth=0, decode=None):
     global total_links, total_output_links
-    history = {}
-    history[config.target_url] = {"parent_url": [], "link_url": str(config.target_url), "link_name": "", "current_url": "", "status_code": -1, "contained_broken_link": 0, "admin_email": "", "admin_unit": "", "time_cost": -1, "reason": "", "depth": depth}
+    history = history_handler(init=True, url=config.target_url)
 
     start_time = datetime.datetime.now()
     try:
@@ -356,67 +335,39 @@ def authenticate(session, config, depth=0, decode=None):
         r = session.get(config.target_url, headers=config.header)
         if config.auth:
             r = session.post(r.url, headers=config.header, data=config.payload)
-        history[config.target_url]["current_url"] = r.url
-        history[config.target_url]["status_code"] = r.status_code
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
+        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, admin_email=config.email, admin_unit=config.unit, depth=depth)
     except KeyboardInterrupt:
         print("Bye~ Bye~\n")
         quit()
     except requests.exceptions.HTTPError as e:
-        history[config.target_url]["status_code"] = -2
+        history = history_handler(history=history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.Timeout as e:
-        history[config.target_url]["status_code"] = -3
+        history = history_handler(history=history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.TooManyRedirects as e:
-        history[config.target_url]["status_code"] = -4
+        history = history_handler(history=history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.ConnectionError as e:
-        history[config.target_url]["status_code"] = -5
+        history = history_handler(history=history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
     except requests.exceptions.InvalidSchema as e:
-        history[config.target_url]["status_code"] = -6
+        history = history_handler(history=history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
     except Exception as e:
-        history[config.target_url]["status_code"] = -7
+        history = history_handler(history=history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
-        history[config.target_url]["link_name"] = config.title
-        history[config.target_url]["admin_email"] = config.email
-        history[config.target_url]["admin_unit"] = config.unit
-        history[config.target_url]["reason"] = e
         return ("", history)
 
     end_time = datetime.datetime.now()
