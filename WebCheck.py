@@ -3,6 +3,7 @@
 
 import Request
 import lxml.html
+import time
 
 def main():
     """
@@ -30,14 +31,19 @@ def main():
             print(url)
             mailto = root.get_element_by_id(i)[2].text_content()+";"
             print(mailto)
-            mailcc = "hyili@itri.org.tw;suyihui.900360@itri.org.tw;"
+            mailcc = "hyili@itri.org.tw;"
             unit = root.get_element_by_id(i)[3].text_content()
             print(unit)
 
-            session.get("http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc)
-        except KeyError:
+            session.get("http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit)
+        except KeyError as e:
             print("No such id")
+            print(str(e))
             break
+
+        time.sleep(1)
+        if i % 5 == 0:
+            time.sleep(10)
 
         i += 1
 
