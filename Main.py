@@ -44,14 +44,11 @@ def arg_initialize(argv):
 Parse function
 """
 def parse_funct(tag, conf, logger):
-    Request.initialize()
-    session = Request.requests.Session()
-    (source, history) = Request.authenticate(session=session, config=conf)
-    linktexts = Request.find_linktexts(source=source)
+    (history, source, linktexts) = Request.initialize(config=conf)
     if conf.depth > 0:
-        history.update(Request.navigate(session=session, linktexts=linktexts, history=history, config=conf))
+        history.update(Request.navigate(linktexts=linktexts, history=history, config=conf))
     Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
-    session.close()
+    Request.close()
 
 """
 Round function

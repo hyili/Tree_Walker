@@ -8,10 +8,12 @@ import requests
 import urllib.parse
 import html.parser
 import os
+import signal
 import re
 import configparser
 import datetime
 import sys
+import copy
 from lxml import etree
 import csv
 import threading
@@ -25,67 +27,118 @@ Global variable
 - total_output_links
     - this is used to record the total number of parsed links that are NOT in
     filter_code.
-- history_queue
-    - this is the message queue between thread to transfer history contains.
+- history_out_queue
+    - this is the message queue from worker thread to main thread to transfer history contains.
+- history_in_queue
+    - this is the message queue from main thread to worker thread to transfer history inputs.
 """
-total_links = 0
-total_output_links = 0
-history_queue = queue.Queue(2000)
+
+"""
+Ctrl + C handler
+"""
+def signal_handler(signal, frame):
+    global threads, num_of_worker_threads, history_in_queue
+
+    for i in range(0, num_of_worker_threads, 1):
+        history_in_queue.put(None)
+    for thread in threads:
+        thread.join()
+
+    print("Bye~ Bye~\n")
+    quit()
+
+"""
+Initialize variable
+"""
+def initialize(config, decode=None):
+    global total_links, total_output_links, history_out_queue, history_in_queue, threads, sessions, num_of_worker_threads
+
+    total_links = 0
+    total_output_links = 0
+    history_out_queue = queue.Queue(2000)
+    history_in_queue = queue.Queue(2000)
+    threads = []
+    session = requests.Session()
+    (source, history) = authenticate(session=session, config=config, decode=decode)
+    linktexts = find_linktexts(source=source)
+    num_of_worker_threads = config.threshold
+    for i in range(0, num_of_worker_threads, 1):
+        thread = HTTPRequest(i, str(i), copy.deepcopy(session), history_in_queue, history_out_queue)
+        thread.start()
+        threads.append(thread)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    return (history, source, linktexts)
+
+"""
+Close
+"""
+def close():
+    global threads, num_of_worker_threads, history_in_queue
+
+    for i in range(0, num_of_worker_threads, 1):
+        history_in_queue.put(None)
+    for thread in threads:
+        thread.join()
+
+    quit()
 
 """
 Thread class
 """
 class HTTPRequest(threading.Thread):
-    def __init__(self, thread_id, thread_name, session, header, timeout, q):
+    def __init__(self, thread_id, thread_name, session, q_in, q_out):
         threading.Thread.__init__(self)
+        self.session = session
         self.thread_id = thread_id
         self.thread_name = thread_name
-        self.session = session
-        self.header = header
-        self.timeout = timeout
-        self.q = q
+        self.q_in = q_in
+        self.q_out = q_out
 
-    def send_request(self, session, header, timeout, url, q):
-        current_url = ""
-        status_code = -1
-        time_cost = -1
-        reason = ""
-        r = None
+    def send_request(self, session, q_in, q_out):
+        while True:
+            current_url = ""
+            reason = ""
+            r = None
 
-        start_time = datetime.datetime.now()
-        try:
-            r = session.get(url, timeout=timeout, headers=header)
-            status_code = r.status_code
-            current_url = str(r.url)
-        except KeyboardInterrupt:
-            print("Bye~ Bye~\n")
-            quit()
-        except requests.exceptions.HTTPError as e:
-            status_code = -2
-            reason = e
-        except requests.exceptions.Timeout as e:
-            status_code = -3
-            reason = e
-        except requests.exceptions.TooManyRedirects as e:
-            status_code = -4
-            reason = e
-        except requests.exceptions.ConnectionError as e:
-            status_code = -5
-            reason = e
-        except requests.exceptions.InvalidSchema as e:
-            status_code = -6
-            reason = e
-        except Exception as e:
-            status_code = -7
-            reason = e
+            request = q_in.get()
 
-        end_time = datetime.datetime.now()
-        time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+            if request is None:
+                return
 
-        q.put({"sub_url": url, "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
+            if "counter" in request and "total" in request:
+                sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
+            start_time = datetime.datetime.now()
+            try:
+                r = session.get(request["url"], timeout=request["timeout"], headers=request["header"])
+                status_code = r.status_code
+                current_url = str(r.url)
+            except requests.exceptions.HTTPError as e:
+                status_code = -2
+                reason = e
+            except requests.exceptions.Timeout as e:
+                status_code = -3
+                reason = e
+            except requests.exceptions.TooManyRedirects as e:
+                status_code = -4
+                reason = e
+            except requests.exceptions.ConnectionError as e:
+                status_code = -5
+                reason = e
+            except requests.exceptions.InvalidSchema as e:
+                status_code = -6
+                reason = e
+            except Exception as e:
+                status_code = -7
+                reason = e
+
+            end_time = datetime.datetime.now()
+            time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+
+            q_out.put({"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
 
     def run(self):
-        self.send_request(session=self.session, header=self.header, timeout=self.timeout, url=self.thread_name, q=self.q)
+        self.send_request(session=self.session, q_in=self.q_in, q_out=self.q_out)
 
 """
 Config class
@@ -202,16 +255,6 @@ def history_handler(init=False, history={}, url="", parent_url=[], link_url="", 
     return history
 
 """
-Initialize variable
-"""
-def initialize():
-    global total_links, total_output_links, history_queue
-
-    total_links = 0
-    total_output_links = 0
-    history_queue = queue.Queue(2000)
-
-"""
 Selenium Web Driver
 - just use selenium for web url after redirecting
 """
@@ -223,8 +266,8 @@ def execute_script(url):
 """
 Navigate into the target website
 """
-def navigate(session, linktexts, config, depth=1, history={}, decode=None):
-    global total_links, total_output_links, history_queue
+def navigate(linktexts, config, depth=1, history={}, decode=None):
+    global total_links, total_output_links, history_out_queue, history_in_queue
 
     links = []
     total_linktexts = len(linktexts)
@@ -232,8 +275,6 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
     counter = 1
 
     if config.multithread:
-        thread_id = 0
-        threads = []
         for linktext in linktexts:
             sub_url = factor_url(config.current_url, linktext[1])
 
@@ -244,27 +285,14 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
             else:
                 history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[3]), depth=depth)
 
-            thread = HTTPRequest(thread_id, sub_url, session, config.header, config.timeout, history_queue)
-            thread.start()
-            threads.append(thread)
-            thread_id += 1
-
-            if thread_id >= config.threshold:
-                for thread in threads:
-                    sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
-                    counter += 1
-                    thread.join()
-                    threads.remove(thread)
-                thread_id = 0
-
-        for thread in threads:
-            sys.stderr.write(str(counter)+"/"+str(total_linktexts)+"\r")
+            history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
             counter += 1
-            thread.join()
-            threads.remove(thread)
 
-        while not history_queue.empty():
-            result = history_queue.get()
+        while not history_in_queue.empty():
+            pass
+
+        while not history_out_queue.empty():
+            result = history_out_queue.get()
             sub_url = result["sub_url"]
             history = history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], time_cost=result["time_cost"], reason=result["reason"])
             r = result["response"]
@@ -299,7 +327,7 @@ def navigate(session, linktexts, config, depth=1, history={}, decode=None):
         sub_url = link[0]
         sub_linktexts = find_linktexts(source=link[1])
         config.current_url = sub_url
-        history.update(navigate(session=session, linktexts=sub_linktexts, config=config, depth=depth+1, history=history))
+        history.update(navigate(linktexts=sub_linktexts, config=config, depth=depth+1, history=history))
 
     return history
 

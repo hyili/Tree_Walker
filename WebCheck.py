@@ -9,10 +9,9 @@ def main():
     """
     web source
     """
-    Request.initialize()
-    session = Request.requests.Session()
-    conf = Request.load_config(filename=".requests.conf", tag="WEBCHECK")
-    (source, history) = Request.authenticate(session=session, config=conf, decode="utf-8")
+    conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
+    conf.load_config()
+    (history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
 
     """
     test: file source
@@ -35,7 +34,7 @@ def main():
             unit = root.get_element_by_id(i)[3].text_content()
             print(unit)
 
-            session.get("http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit)
+            Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit, "timeout": conf.timeout, "header": conf.header})
         except KeyError as e:
             print("No such id")
             print(str(e))
@@ -47,7 +46,7 @@ def main():
 
         i += 1
 
-    session.close()
+    Request.close()
 
 if __name__ == "__main__":
     main()

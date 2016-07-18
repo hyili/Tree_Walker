@@ -75,7 +75,8 @@ def main():
     subject = args.subject
     content = args.content
 
-    conf = Request.load_config(".requests.conf", tag)
+    conf = Request.Config(filename=".requests.conf", tag=tag)
+    conf.load_config()
     username = conf.payload["USER"]
     password = conf.payload["PASSWORD"]
 
