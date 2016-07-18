@@ -13,7 +13,6 @@ import re
 import configparser
 import datetime
 import sys
-import copy
 from lxml import etree
 import csv
 import threading
@@ -58,28 +57,36 @@ def initialize(config, decode=None):
     history_out_queue = queue.Queue(2000)
     history_in_queue = queue.Queue(2000)
     threads = []
-    session = requests.Session()
-    (source, history) = authenticate(session=session, config=config, decode=decode)
-    linktexts = find_linktexts(source=source)
+    sessions = []
     num_of_worker_threads = config.threshold
-    for i in range(0, num_of_worker_threads, 1):
-        thread = HTTPRequest(i, str(i), copy.deepcopy(session), history_in_queue, history_out_queue)
-        thread.start()
-        threads.append(thread)
     signal.signal(signal.SIGINT, signal_handler)
 
-    return (history, source, linktexts)
+    session = requests.Session()
+    sessions.append(session)
+    (source, history) = authenticate(session=session, config=config, decode=decode)
+    linktexts = find_linktexts(source=source)
+    for i in range(0, num_of_worker_threads, 1):
+        new_session = requests.Session()
+        sessions.append(new_session)
+        authenticate(session=new_session, config=config, decode=decode)
+        thread = HTTPRequest(i, str(i), new_session, history_in_queue, history_out_queue)
+        thread.start()
+        threads.append(thread)
+
+    return (session, history, source, linktexts)
 
 """
 Close
 """
 def close():
-    global threads, num_of_worker_threads, history_in_queue
+    global sessions, threads, num_of_worker_threads, history_in_queue
 
     for i in range(0, num_of_worker_threads, 1):
         history_in_queue.put(None)
     for thread in threads:
         thread.join()
+    for session in sessions:
+        session.close()
 
     quit()
 
@@ -136,6 +143,8 @@ class HTTPRequest(threading.Thread):
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
             q_out.put({"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
+            q_in.task_done()
+        print("hello")
 
     def run(self):
         self.send_request(session=self.session, q_in=self.q_in, q_out=self.q_out)
@@ -272,11 +281,12 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
     links = []
     total_linktexts = len(linktexts)
     total_links += total_linktexts
-    counter = 1
+    counter = 0
 
     if config.multithread:
         for linktext in linktexts:
             sub_url = factor_url(config.current_url, linktext[1])
+            counter += 1
 
             if sub_url in history:
                 if config.current_url not in history[sub_url]["parent_url"]:
@@ -285,11 +295,10 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
             else:
                 history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[3]), depth=depth)
 
-            history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
-            counter += 1
 
-        while not history_in_queue.empty():
-            pass
+            history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
+
+        history_in_queue.join()
 
         while not history_out_queue.empty():
             result = history_out_queue.get()
@@ -573,7 +582,8 @@ def file_generator(history, logger, config, output_filename):
         #print("Not implement")
         pass
     if "STDOUT" in config.output_format:
-        print(history[config.target_url]["status_code"])
+        print("\n"+str(history[config.target_url]["status_code"]))
+        pass
 
 """
 transform the target_url to domain_url in regular expression format

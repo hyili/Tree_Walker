@@ -99,7 +99,7 @@ def initialize():
     logger = log_initialize(".APIServer.log")
     request_queue = queue.Queue()
     threads = []
-    num_of_worker_threads = 3
+    num_of_worker_threads = 1
     counter = 0
 
 @app.route("/")

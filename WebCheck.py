@@ -11,7 +11,7 @@ def main():
     """
     conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     conf.load_config()
-    (history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
+    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
 
     """
     test: file source
