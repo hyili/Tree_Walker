@@ -17,6 +17,7 @@ from lxml import etree
 import csv
 import threading
 import queue
+import copy
 from selenium import webdriver
 
 """
@@ -59,19 +60,24 @@ def initialize(config, decode=None):
     threads = []
     sessions = []
     num_of_worker_threads = config.threshold
+    if config.depth == 0:
+        num_of_worker_threads = 0
     signal.signal(signal.SIGINT, signal_handler)
 
+    requests.packages.urllib3.disable_warnings()
     session = requests.Session()
     sessions.append(session)
     (source, history) = authenticate(session=session, config=config, decode=decode)
     linktexts = find_linktexts(source=source)
-    for i in range(0, num_of_worker_threads, 1):
-        new_session = requests.Session()
-        sessions.append(new_session)
-        authenticate(session=new_session, config=config, decode=decode)
-        thread = HTTPRequest(i, str(i), new_session, history_in_queue, history_out_queue)
-        thread.start()
-        threads.append(thread)
+
+    if history[config.target_url]["status_code"] == 200:
+        for i in range(0, num_of_worker_threads, 1):
+            new_session = copy.deepcopy(session)
+            sessions.append(new_session)
+            authenticate(session=new_session, config=config, decode=decode)
+            thread = HTTPRequest(i, str(i), new_session, history_in_queue, history_out_queue)
+            thread.start()
+            threads.append(thread)
 
     return (session, history, source, linktexts)
 
@@ -117,34 +123,45 @@ class HTTPRequest(threading.Thread):
                 sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
             start_time = datetime.datetime.now()
             try:
-                r = session.get(request["url"], timeout=request["timeout"], headers=request["header"])
+                r = session.get(request["url"], timeout=request["timeout"], headers=request["header"], verify=False)
+                # If it crashs with 403 error code, then using selenium to double check
+                if r.status_code == 403:
+                    url = execute_script(request["url"])
+                    if url != request["url"]:
+                        r = session.get(url, headers=request["header"], verify=False)
+
                 status_code = r.status_code
                 current_url = str(r.url)
             except requests.exceptions.HTTPError as e:
                 status_code = -2
                 reason = e
+                r = None
             except requests.exceptions.Timeout as e:
                 status_code = -3
                 reason = e
+                r = None
             except requests.exceptions.TooManyRedirects as e:
                 status_code = -4
                 reason = e
+                r = None
             except requests.exceptions.ConnectionError as e:
                 status_code = -5
                 reason = e
+                r = None
             except requests.exceptions.InvalidSchema as e:
                 status_code = -6
                 reason = e
+                r = None
             except Exception as e:
                 status_code = -7
                 reason = e
+                r = None
 
             end_time = datetime.datetime.now()
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
             q_out.put({"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
             q_in.task_done()
-        print("hello")
 
     def run(self):
         self.send_request(session=self.session, q_in=self.q_in, q_out=self.q_out)
@@ -200,10 +217,10 @@ class Config():
         if self.auth:
             self.user = self.load(conf, self.tag, "USER")
             self.password = self.load(conf, self.tag, "PASS")
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "multipart/mixed,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
             self.payload = {"USER": self.user, "PASSWORD": self.password}
         else:
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "multipart/mixed,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
             self.payload = {}
         self.depth = self.load(conf, self.tag, "DEPTH", int)
         self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
@@ -264,11 +281,12 @@ def history_handler(init=False, history={}, url="", parent_url=[], link_url="", 
     return history
 
 """
-Selenium Web Driver
-- just use selenium for web url after redirecting
+- Selenium Web Driver
+    - just use selenium for web url after redirecting
 """
 def execute_script(url):
-    wd = webdriver.Firefox()
+    # wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs")
+    wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     wd.get(url)
     return wd.current_url
 
@@ -294,7 +312,6 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                 continue
             else:
                 history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[3]), depth=depth)
-
 
             history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
 
@@ -369,40 +386,46 @@ def authenticate(session, config, depth=0, decode=None):
     start_time = datetime.datetime.now()
     try:
         total_links += 1
-        r = session.get(config.target_url, headers=config.header)
+        r = session.get(config.target_url, headers=config.header, verify=False)
+        # If it crashs with 403 error code, then using selenium to double check
+        if r.status_code == 403:
+            url = execute_script(config.target_url)
+            if url != config.target_url:
+                r = session.get(url, headers=config.header, verify=False)
+
         if config.auth:
-            r = session.post(r.url, headers=config.header, data=config.payload)
-        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, admin_email=config.email, admin_unit=config.unit, depth=depth)
+            r = session.post(r.url, headers=config.header, data=config.payload, verify=True)
+        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, depth=depth)
     except KeyboardInterrupt:
         print("Bye~ Bye~\n")
         quit()
     except requests.exceptions.HTTPError as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
     except requests.exceptions.Timeout as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
     except requests.exceptions.TooManyRedirects as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
     except requests.exceptions.ConnectionError as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
     except requests.exceptions.InvalidSchema as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
     except Exception as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, admin_unit=config.unit, reason=e, depth=depth)
+        history = history_handler(history=history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
             total_output_links += 1
         return ("", history)
@@ -583,7 +606,6 @@ def file_generator(history, logger, config, output_filename):
         pass
     if "STDOUT" in config.output_format:
         print("\n"+str(history[config.target_url]["status_code"]))
-        pass
 
 """
 transform the target_url to domain_url in regular expression format

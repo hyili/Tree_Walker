@@ -21,6 +21,8 @@ class HTTPRequestHandler(threading.Thread):
         self.request_queue = request_queue
 
     def handler(self, request_queue):
+        global logger
+
         while True:
             request = request_queue.get()
 
@@ -33,9 +35,11 @@ class HTTPRequestHandler(threading.Thread):
                 print("Output. ("+record+")")
                 error_msg = error_code_description(int(record))
                 os.system("./Mail.py --tag WEBCHECK --sender hyili@itri.org.tw --receiver a19931031@gmail.com --secretccreceiver "+request["mailcc"]+" --subject \"請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>網站」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
+                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" sent OK")
             else:
                 print(str(request["counter"])+" "+request["title"])
                 print("No output. ("+record+")")
+                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" no sent OK")
 
     def run(self):
         self.handler(self.request_queue)
@@ -96,10 +100,10 @@ def initialize():
     global logger, request_queue, threads, num_of_worker_threads, counter
 
     signal.signal(signal.SIGINT, signal_handler)
-    logger = log_initialize(".APIServer.log")
+    logger = log_initialize(".server.log")
     request_queue = queue.Queue()
     threads = []
-    num_of_worker_threads = 1
+    num_of_worker_threads = 3
     counter = 0
 
 @app.route("/")
@@ -114,17 +118,18 @@ def api_execute_adv():
     dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
     counter += 1
     if "title" in request.args and "url" in request.args and "mailto" in request.args and "mailcc" in request.args and "unit" in request.args:
+        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request.args["mailto"]+" "+request.args["mailcc"]+" "+request.args["unit"])
         pattern = "^http(s)?://"
         if not re.match(pattern, request.args["url"]):
-            logger.warn(request.args["title"]+": Syntax error on "+request.args["url"]+" argument.")
+            logger.warn(request.args["title"]+": Syntax error on url argument.")
             return "Syntax error on url argument."
         pattern = "^(((.*?)@(.*?));)+$"
         if not re.match(pattern, request.args["mailto"]):
-            logger.warn(request.args["title"]+": Syntax error on "+request.args["mailto"]+" argument.")
+            logger.warn(request.args["title"]+": Syntax error on mailto argument.")
             return "Syntax error on mailto argument."
         pattern = "^(((.*?)@(.*?));)*$"
         if not re.match(pattern, request.args["mailcc"]):
-            logger.warn(request.args["title"]+": Syntax error on "+request.args["mailcc"]+" argument.")
+            logger.warn(request.args["title"]+": Syntax error on mailcc argument.")
             return "Syntax error on mailcc argument."
 
         title = request.args["title"]
@@ -137,8 +142,9 @@ def api_execute_adv():
 
         data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+request.args["mailto"]+", \"mailcc\": "+request.args["mailcc"]+", \"unit\": "+request.args["unit"]+"]"
         return "We are working on it.<br>The followings are your input data: "+data
-
-    return "Something wrong happend. Make sure that you have already send the total four arguments."
+    else:
+        logger.warn(str(counter)+" Something wrong happend. Check you have send whole parameters.")
+        return "Something wrong happend. Make sure that you have already send the total five arguments."
 
 if __name__ == "__main__":
     global threads, num_of_worker_threads, request_queue
