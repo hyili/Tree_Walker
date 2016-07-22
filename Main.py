@@ -10,9 +10,10 @@ import argparse
 Logger init
 """
 def log_initialize(logname):
-    logger = logging.getLogger("requests")
+    directory = "logs/"
+    logger = logging.getLogger("main")
     logger.setLevel(logging.WARNING)
-    file_handler = logging.FileHandler(logname)
+    file_handler = logging.FileHandler(directory+logname)
     file_handler.setLevel(logging.WARNING)
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
@@ -29,7 +30,7 @@ def arg_initialize(argv):
     config_subparser = subparsers.add_parser("config", help="Running specified config tag.")
     config_subparser.add_argument("tags", nargs="*", help="Specify tags in conf.")
     commandline_subparser = subparsers.add_parser("commandline", help="Running specified commandline option.")
-    commandline_subparser.add_argument("--tag", default="DEFAULT", help="Template tag for commandline execution.", required=True)
+    commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.", required=True)
     commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
     commandline_subparser.add_argument("--auth", dest="auth", action="store_true")
@@ -44,9 +45,9 @@ def arg_initialize(argv):
 Parse function
 """
 def parse_funct(tag, conf, logger):
-    (session, history, source, linktexts) = Request.initialize(config=conf)
+    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
     if conf.depth > 0:
-        history.update(Request.navigate(linktexts=linktexts, history=history, config=conf))
+        history.update(Request.navigate(linktexts=linktexts, history=history, config=conf, decode="utf-8"))
     Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
     Request.close()
 
@@ -68,8 +69,8 @@ def round_funct(args, logger):
         conf.title = args.title
         conf.email = args.email
         conf.unit = args.unit
-        conf.target_url = args.url
-        conf.current_url = args.url
+        conf.target_url = Request.factor_url(args.url, "")
+        conf.current_url = Request.factor_url(args.url, "")
         conf.domain_url = Request.pattern_generator(args.url)
 
         if args.depth >= 0:
@@ -82,7 +83,7 @@ def round_funct(args, logger):
 def main():
     argv = sys.argv
 
-    logger = log_initialize(".requests.log")
+    logger = log_initialize("main.log")
     args = arg_initialize(argv)
 
     round_funct(args, logger)

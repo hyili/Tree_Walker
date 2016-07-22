@@ -19,6 +19,12 @@ import threading
 import queue
 import copy
 from selenium import webdriver
+from bs4 import BeautifulSoup
+
+from chardet.universaldetector import UniversalDetector
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import ssl
 
 """
 Global variable
@@ -32,6 +38,13 @@ Global variable
 - history_in_queue
     - this is the message queue from main thread to worker thread to transfer history inputs.
 """
+
+"""
+Requests TLS Adapter
+"""
+class TLSAdapter(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_TLSv1)
 
 """
 Ctrl + C handler
@@ -66,6 +79,7 @@ def initialize(config, decode=None):
 
     requests.packages.urllib3.disable_warnings()
     session = requests.Session()
+    session.mount("https://", TLSAdapter())
     sessions.append(session)
     (source, history) = authenticate(session=session, config=config, decode=decode)
     linktexts = find_linktexts(source=source)
@@ -74,7 +88,6 @@ def initialize(config, decode=None):
         for i in range(0, num_of_worker_threads, 1):
             new_session = copy.deepcopy(session)
             sessions.append(new_session)
-            authenticate(session=new_session, config=config, decode=decode)
             thread = HTTPRequest(i, str(i), new_session, history_in_queue, history_out_queue)
             thread.start()
             threads.append(thread)
@@ -108,63 +121,69 @@ class HTTPRequest(threading.Thread):
         self.q_in = q_in
         self.q_out = q_out
 
-    def send_request(self, session, q_in, q_out):
-        while True:
-            current_url = ""
-            reason = ""
+    def send_head_request(self, session, request):
+        return True
+
+    def send_get_request(self, session, request):
+        current_url = ""
+        reason = ""
+        r = None
+
+        if "counter" in request and "total" in request:
+            sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
+
+        start_time = datetime.datetime.now()
+        try:
+            r = session.get(request["url"], timeout=request["timeout"], headers=request["header"], verify=False)
+            # If it crashs with 403 error code, then using selenium to double check
+            if r.status_code == 403:
+                url = execute_script(request["url"])
+                if url != request["url"]:
+                    r = session.get(url, headers=request["header"], verify=False)
+
+            r.encoding = detect_encoding(r)
+            status_code = r.status_code
+            current_url = str(r.url)
+        except requests.exceptions.HTTPError as e:
+            status_code = -2
+            reason = e
+            r = None
+        except requests.exceptions.Timeout as e:
+            status_code = -3
+            reason = e
+            r = None
+        except requests.exceptions.TooManyRedirects as e:
+            status_code = -4
+            reason = e
+            r = None
+        except requests.exceptions.ConnectionError as e:
+            status_code = -5
+            reason = e
+            r = None
+        except requests.exceptions.InvalidSchema as e:
+            status_code = -6
+            reason = e
+            r = None
+        except Exception as e:
+            status_code = -7
+            reason = e
             r = None
 
-            request = q_in.get()
+        end_time = datetime.datetime.now()
+        time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
-            if request is None:
-                return
-
-            if "counter" in request and "total" in request:
-                sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
-            start_time = datetime.datetime.now()
-            try:
-                r = session.get(request["url"], timeout=request["timeout"], headers=request["header"], verify=False)
-                # If it crashs with 403 error code, then using selenium to double check
-                if r.status_code == 403:
-                    url = execute_script(request["url"])
-                    if url != request["url"]:
-                        r = session.get(url, headers=request["header"], verify=False)
-
-                status_code = r.status_code
-                current_url = str(r.url)
-            except requests.exceptions.HTTPError as e:
-                status_code = -2
-                reason = e
-                r = None
-            except requests.exceptions.Timeout as e:
-                status_code = -3
-                reason = e
-                r = None
-            except requests.exceptions.TooManyRedirects as e:
-                status_code = -4
-                reason = e
-                r = None
-            except requests.exceptions.ConnectionError as e:
-                status_code = -5
-                reason = e
-                r = None
-            except requests.exceptions.InvalidSchema as e:
-                status_code = -6
-                reason = e
-                r = None
-            except Exception as e:
-                status_code = -7
-                reason = e
-                r = None
-
-            end_time = datetime.datetime.now()
-            time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-
-            q_out.put({"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r})
-            q_in.task_done()
+        return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r}
 
     def run(self):
-        self.send_request(session=self.session, q_in=self.q_in, q_out=self.q_out)
+        while True:
+            request = self.q_in.get()
+            if request is None:
+                self.q_in.task_done()
+                break
+            if self.send_head_request(session=self.session, request=request):
+                response = self.send_get_request(session=self.session, request=request)
+                self.q_out.put(response)
+            self.q_in.task_done()
 
 """
 Config class
@@ -212,15 +231,15 @@ class Config():
         self.threshold = self.load(conf, self.tag, "THRESHOLD", int)
         print_depths = self.load(conf, self.tag, "PRINT_DEPTH")
         self.print_depth = [int(i) for i in print_depths.split(",")]
-        self.target_url = self.load(conf, self.tag, "TARGET_URL")
+        self.target_url = factor_url(self.load(conf, self.tag, "TARGET_URL"), "")
         self.current_url = self.target_url
         if self.auth:
             self.user = self.load(conf, self.tag, "USER")
             self.password = self.load(conf, self.tag, "PASS")
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "multipart/mixed,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept-Charset": "utf-8;"}
             self.payload = {"USER": self.user, "PASSWORD": self.password}
         else:
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept": "multipart/mixed,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Charset": "utf-8;q=0.7,*;q=0.3", "Connection": "keep-alive"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept-Charset": "utf-8"}
             self.payload = {}
         self.depth = self.load(conf, self.tag, "DEPTH", int)
         self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
@@ -230,6 +249,22 @@ class Config():
         output_formats = self.load(conf, self.tag, "FORMAT")
         self.output_format = [str(i) for i in output_formats.split(",")]
         self.sort = self.load(conf, self.tag, "SORT")
+
+"""
+Encoding detection
+"""
+def detect_encoding(r):
+    detector = UniversalDetector()
+
+    lines = r.content.splitlines()
+    for line in lines:
+        detector.feed(line)
+        if detector.done:
+            break
+
+    detector.close()
+
+    return detector.result["encoding"]
 
 """
 history handler
@@ -287,8 +322,16 @@ def history_handler(init=False, history={}, url="", parent_url=[], link_url="", 
 def execute_script(url):
     # wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs")
     wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
-    wd.get(url)
-    return wd.current_url
+    result = ""
+    try:
+        wd.get(url)
+        result = wd.current_url
+    except:
+        result = url
+
+    wd.close()
+
+    return result
 
 """
 Navigate into the target website
@@ -303,15 +346,19 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
 
     if config.multithread:
         for linktext in linktexts:
-            sub_url = factor_url(config.current_url, linktext[1])
+            sub_url = factor_url(history[config.current_url]["current_url"], linktext[0])
             counter += 1
 
             if sub_url in history:
+                if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
+                    history[config.current_url]["contained_broken_link"] += 1
+
                 if config.current_url not in history[sub_url]["parent_url"]:
                     history[sub_url]["parent_url"].append(str(config.current_url))
+
                 continue
             else:
-                history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[3]), depth=depth)
+                history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
 
             history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
 
@@ -326,21 +373,12 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
             if history[sub_url]["status_code"] == 200:
                 if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
                     if r is not None:
-                        try:
-                            if decode is None:
-                                links.append((r.url, r.content.decode(r.encoding)))
-                            else:
-                                links.append((r.url, r.content.decode(decode)))
-                        except:
-                            links.append((r.url, r.text))
+                        links.append((sub_url, r.text))
 
             if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
                 history[config.current_url]["contained_broken_link"] += 1
 
-            if history[sub_url]["status_code"] not in config.filter_code and history[sub_url]["status_code"] != -6:
-                total_output_links += 1
-
-            if history[sub_url]["status_code"] == -6:
+            if history[sub_url]["status_code"] in [-6]:
                 del history[sub_url]
     else:
         print("Single thread deprecated. Using multithread instead.")
@@ -353,7 +391,7 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
         sub_url = link[0]
         sub_linktexts = find_linktexts(source=link[1])
         config.current_url = sub_url
-        history.update(navigate(linktexts=sub_linktexts, config=config, depth=depth+1, history=history))
+        history.update(navigate(linktexts=sub_linktexts, config=config, depth=depth+1, history=history, decode=decode))
 
     return history
 
@@ -361,19 +399,22 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
 Reformat url
 """
 def factor_url(current_url, sub_url):
-    new_sub_url = re.sub("\\\\", "/", sub_url)
-
     pattern = "^(javascript|tel):"
-    if bool(re.search(pattern, new_sub_url)):
-        return new_sub_url
+    if bool(re.search(pattern, sub_url)):
+        return sub_url
 
-    new_sub_url = html.parser.HTMLParser().unescape(new_sub_url)
+    sub_url = html.parser.HTMLParser().unescape(sub_url)
+    current_url = current_url.strip()
+    sub_url = sub_url.strip()
 
     pattern = "^(ftp|http(s)?)://"
-    if bool(re.search(pattern, new_sub_url)):
-        return new_sub_url
+    if bool(re.search(pattern, sub_url)):
+        url = sub_url
     else:
-        return urllib.parse.urljoin(current_url, new_sub_url).replace("../", "")
+        url = urllib.parse.urljoin(current_url, sub_url)
+
+    ret_val = urllib.parse.urlsplit(url).geturl()
+    return ret_val
 
 """
 Will be forwarded to another authentication page
@@ -395,6 +436,8 @@ def authenticate(session, config, depth=0, decode=None):
 
         if config.auth:
             r = session.post(r.url, headers=config.header, data=config.payload, verify=True)
+
+        r.encoding = detect_encoding(r)
         history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, depth=depth)
     except KeyboardInterrupt:
         print("Bye~ Bye~\n")
@@ -437,13 +480,7 @@ def authenticate(session, config, depth=0, decode=None):
     if history[config.target_url]["status_code"] not in config.filter_code:
         total_output_links += 1
 
-    try:
-        if decode is None:
-            ret_val = (r.content.decode(r.encoding), history)
-        else:
-            ret_val = (r.content.decode(decode), history)
-    except:
-        ret_val = (r.text, history)
+    ret_val = (r.text, history)
 
     return ret_val
 
@@ -451,8 +488,16 @@ def authenticate(session, config, depth=0, decode=None):
 Find all the link in the given source
 """
 def find_linktexts(source):
-    pattern = re.compile("<a([\s\S]*?)?href=\"([\s\S]*?)?\"([\s\S]*?)?>([\s\S]*?)?</a>")
-    return re.findall(pattern, source)
+    linktexts = []
+    soup = BeautifulSoup(source, "lxml")
+    atag = soup.select("a[href]")
+    for linktext in atag:
+        if linktext.string is None:
+            linktexts.append((linktext["href"], ""))
+        else:
+            linktexts.append((linktext["href"], linktext.string))
+
+    return linktexts
 
 """
 Output file generator using specified format
@@ -460,7 +505,9 @@ Output file generator using specified format
 def file_generator(history, logger, config, output_filename):
     global total_links, total_output_links
 
-    logger.warn("["+output_filename+"] "+str(config.filter_code)+" "+str(total_output_links)+"/"+str(total_links)+" Genrating output files...")
+    directory = "output/"
+    output_filename = output_filename.replace("/", " ")
+    logger.warn("["+config.tag+"] filter_code: {"+str(config.filter_code)+"}, print_depth: {"+str(config.print_depth)+"} Genrating "+output_filename+"...")
     if "XML" in config.output_format:
         if config.sort == "URL":
             time = etree.Element("time")
@@ -500,7 +547,7 @@ def file_generator(history, logger, config, output_filename):
                         print(e)
                         continue
             tree = etree.ElementTree(time)
-            with open(output_filename+".xml", "ab") as xmlfile:
+            with open(directory+output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
                 xmlfile.close()
         elif config.sort == "STATUS_CODE":
@@ -542,17 +589,17 @@ def file_generator(history, logger, config, output_filename):
                         print(e)
                         continue
             tree = etree.ElementTree(time)
-            with open(output_filename+".xml", "ab") as xmlfile:
+            with open(directory+output_filename+".xml", "ab") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
                 xmlfile.close()
 
     if "CSV" in config.output_format:
         file_exist = False
-        if os.path.isfile(output_filename+".csv"):
+        if os.path.isfile(directory+output_filename+".csv"):
             file_exist = True
 
         if config.sort == "URL":
-            with open(output_filename+".csv", "a") as csvfile:
+            with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
                 #fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "contained_broken_link", "admin_email", "admin_unit", "time_cost", "reason", "total_output_links", "total_links"]
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
@@ -577,7 +624,7 @@ def file_generator(history, logger, config, output_filename):
                 csvfile.close()
         elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
-            with open(output_filename+".csv", "a") as csvfile:
+            with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
                 #fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "contained_broken_link", "admin_email", "admin_unit", "time_cost", "reason", "total_links", "total_output_links"]
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]

@@ -10,17 +10,20 @@ import threading
 import datetime
 import queue
 import signal
+import sys
+import argparse
 
 app = Flask(__name__)
 
 class HTTPRequestHandler(threading.Thread):
-    def __init__(self, thread_id, thread_name, request_queue):
+    def __init__(self, thread_id, thread_name, request_queue, seperate):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
         self.request_queue = request_queue
+        self.seperate = seperate
 
-    def handler(self, request_queue):
+    def handler(self, request_queue, seperate):
         global logger
 
         while True:
@@ -29,12 +32,16 @@ class HTTPRequestHandler(threading.Thread):
             if request is None:
                 return
 
-            record = os.popen("./Main.py commandline --tag WEBCHECK --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename APILog").read().replace("\n", "")
+            if seperate:
+                record = os.popen("./Main.py commandline --tag WEBCHECK --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
+            else:
+                record = os.popen("./Main.py commandline --tag WEBCHECK --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
+
             if record in ["400", "401", "403", "404", "500", "503", "-3", "-5"]:
                 print(str(request["counter"])+" "+request["title"])
                 print("Output. ("+record+")")
                 error_msg = error_code_description(int(record))
-                os.system("./Mail.py --tag WEBCHECK --sender hyili@itri.org.tw --receiver a19931031@gmail.com --secretccreceiver "+request["mailcc"]+" --subject \"請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>網站」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
+                #os.system("./Mail.py --tag WEBCHECK --sender hyili@itri.org.tw --receiver a19931031@gmail.com --secretccreceiver "+request["mailcc"]+" --subject \"請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>網站」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
                 logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" sent OK")
             else:
                 print(str(request["counter"])+" "+request["title"])
@@ -42,7 +49,7 @@ class HTTPRequestHandler(threading.Thread):
                 logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" no sent OK")
 
     def run(self):
-        self.handler(self.request_queue)
+        self.handler(self.request_queue, self.seperate)
 
 """
 Ctrl + C handler
@@ -81,12 +88,24 @@ def error_code_description(record):
     return ""
 
 """
+Argument init
+"""
+def arg_initialize(argv):
+    parser = argparse.ArgumentParser(description="Start to running API server.")
+    parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads.")
+    parser.add_argument("--onefile", dest="seperate", action="store_false", help="Default is false.")
+    parser.add_argument("--multifile", dest="seperate", action="store_true", help="Default is true.")
+
+    return parser.parse_args()
+
+"""
 Logger init
 """
 def log_initialize(logname):
-    logger = logging.getLogger("requests")
+    directory = "logs/"
+    logger = logging.getLogger("apiserver")
     logger.setLevel(logging.WARNING)
-    file_handler = logging.FileHandler(logname)
+    file_handler = logging.FileHandler(directory+logname)
     file_handler.setLevel(logging.WARNING)
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
@@ -96,14 +115,14 @@ def log_initialize(logname):
 """
 Initialize variable
 """
-def initialize():
+def initialize(args):
     global logger, request_queue, threads, num_of_worker_threads, counter
 
     signal.signal(signal.SIGINT, signal_handler)
-    logger = log_initialize(".server.log")
+    logger = log_initialize("apiserver.log")
     request_queue = queue.Queue()
     threads = []
-    num_of_worker_threads = 3
+    num_of_worker_threads = args.threads
     counter = 0
 
 @app.route("/")
@@ -114,22 +133,21 @@ def api_root():
 def api_execute_adv():
     global counter, logger, thread, request_queue
 
-#    pid = os.getpid()
     dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
     counter += 1
     if "title" in request.args and "url" in request.args and "mailto" in request.args and "mailcc" in request.args and "unit" in request.args:
         logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request.args["mailto"]+" "+request.args["mailcc"]+" "+request.args["unit"])
         pattern = "^http(s)?://"
         if not re.match(pattern, request.args["url"]):
-            logger.warn(request.args["title"]+": Syntax error on url argument.")
+            logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on url argument.")
             return "Syntax error on url argument."
         pattern = "^(((.*?)@(.*?));)+$"
         if not re.match(pattern, request.args["mailto"]):
-            logger.warn(request.args["title"]+": Syntax error on mailto argument.")
+            logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailto argument.")
             return "Syntax error on mailto argument."
         pattern = "^(((.*?)@(.*?));)*$"
         if not re.match(pattern, request.args["mailcc"]):
-            logger.warn(request.args["title"]+": Syntax error on mailcc argument.")
+            logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailcc argument.")
             return "Syntax error on mailcc argument."
 
         title = request.args["title"]
@@ -148,10 +166,12 @@ def api_execute_adv():
 
 if __name__ == "__main__":
     global threads, num_of_worker_threads, request_queue
+    argv = sys.argv
 
-    initialize()
+    args = arg_initialize(argv)
+    initialize(args)
     for i in range(0, num_of_worker_threads, 1):
-        thread = HTTPRequestHandler(i, str(i), request_queue)
+        thread = HTTPRequestHandler(i, str(i), request_queue, args.seperate)
         thread.start()
         threads.append(thread)
     app.run()

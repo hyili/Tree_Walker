@@ -12,6 +12,7 @@ def main():
     conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     conf.load_config()
     (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
+    print("OK")
 
     """
     test: file source
@@ -40,9 +41,8 @@ def main():
             print(str(e))
             break
 
-        time.sleep(1)
         if i % 5 == 0:
-            time.sleep(10)
+            time.sleep(5)
 
         i += 1
 
