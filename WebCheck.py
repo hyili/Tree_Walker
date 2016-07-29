@@ -12,7 +12,10 @@ def main():
     conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     conf.load_config()
     (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
-    print("OK")
+    if history[conf.target_url]["status_code"] == 200:
+        print("OK")
+    else:
+        quit()
 
     """
     test: file source

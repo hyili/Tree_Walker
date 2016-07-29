@@ -35,6 +35,10 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
     commandline_subparser.add_argument("--auth", dest="auth", action="store_true")
     commandline_subparser.add_argument("--no-auth", dest="auth", action="store_false")
+    commandline_subparser.add_argument("--verify-cert", dest="verify", action="store_true")
+    commandline_subparser.add_argument("--no-verify-cert", dest="verify", action="store_false")
+    commandline_subparser.add_argument("--redirect", dest="redirect", action="store_true")
+    commandline_subparser.add_argument("--no-redirect", dest="redirect", action="store_false")
     commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
@@ -66,6 +70,8 @@ def round_funct(args, logger):
         conf.load_config()
 
         conf.auth = args.auth
+        conf.verify = args.verify
+        conf.follow_redirection = args.redirect
         conf.title = args.title
         conf.email = args.email
         conf.unit = args.unit

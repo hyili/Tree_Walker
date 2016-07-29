@@ -21,7 +21,6 @@ import copy
 from selenium import webdriver
 from bs4 import BeautifulSoup
 
-from chardet.universaldetector import UniversalDetector
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 import ssl
@@ -44,78 +43,18 @@ Requests TLS Adapter
 """
 class TLSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_TLSv1)
-
-"""
-Ctrl + C handler
-"""
-def signal_handler(signal, frame):
-    global threads, num_of_worker_threads, history_in_queue
-
-    for i in range(0, num_of_worker_threads, 1):
-        history_in_queue.put(None)
-    for thread in threads:
-        thread.join()
-
-    print("Bye~ Bye~\n")
-    quit()
-
-"""
-Initialize variable
-"""
-def initialize(config, decode=None):
-    global total_links, total_output_links, history_out_queue, history_in_queue, threads, sessions, num_of_worker_threads
-
-    total_links = 0
-    total_output_links = 0
-    history_out_queue = queue.Queue(2000)
-    history_in_queue = queue.Queue(2000)
-    threads = []
-    sessions = []
-    num_of_worker_threads = config.threshold
-    if config.depth == 0:
-        num_of_worker_threads = 0
-    signal.signal(signal.SIGINT, signal_handler)
-
-    requests.packages.urllib3.disable_warnings()
-    session = requests.Session()
-    session.mount("https://", TLSAdapter())
-    sessions.append(session)
-    (source, history) = authenticate(session=session, config=config, decode=decode)
-    linktexts = find_linktexts(source=source)
-
-    if history[config.target_url]["status_code"] == 200:
-        for i in range(0, num_of_worker_threads, 1):
-            new_session = copy.deepcopy(session)
-            sessions.append(new_session)
-            thread = HTTPRequest(i, str(i), new_session, history_in_queue, history_out_queue)
-            thread.start()
-            threads.append(thread)
-
-    return (session, history, source, linktexts)
-
-"""
-Close
-"""
-def close():
-    global sessions, threads, num_of_worker_threads, history_in_queue
-
-    for i in range(0, num_of_worker_threads, 1):
-        history_in_queue.put(None)
-    for thread in threads:
-        thread.join()
-    for session in sessions:
-        session.close()
-
-    quit()
+        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_SSLv23)
 
 """
 Thread class
 """
 class HTTPRequest(threading.Thread):
-    def __init__(self, thread_id, thread_name, session, q_in, q_out):
+    def __init__(self, thread_id, thread_name, event, session, verify, follow_redirection, q_in, q_out):
         threading.Thread.__init__(self)
+        self.event = event
         self.session = session
+        self.verify = verify
+        self.follow_redirection = follow_redirection
         self.thread_id = thread_id
         self.thread_name = thread_name
         self.q_in = q_in
@@ -124,25 +63,27 @@ class HTTPRequest(threading.Thread):
     def send_head_request(self, session, request):
         return True
 
-    def send_get_request(self, session, request):
+    def send_get_request(self, session, request, follow_redirection=False, verify=False):
         current_url = ""
-        reason = ""
         r = None
 
         if "counter" in request and "total" in request:
             sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
 
-        start_time = datetime.datetime.now()
         try:
-            r = session.get(request["url"], timeout=request["timeout"], headers=request["header"], verify=False)
-            # If it crashs with 403 error code, then using selenium to double check
-            if r.status_code == 403:
-                url = execute_script(request["url"])
-                if url != request["url"]:
-                    r = session.get(url, headers=request["header"], verify=False)
+            start_time = datetime.datetime.now()
+            # utf-8 and iso-8859-1 misuse problem. TODO:
+            url = run_webdriver(request["url"], follow_redirection)
+            r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=verify)
+            # If it crashs with 403 error code, then using selenium to double check. TODO:
+            # if r.status_code == 403:
+            #     url = run_webdriver(request["url"])
+            #     if url != request["url"]:
+            #         r = session.get(url, headers=request["header"], verify=True)
 
             r.encoding = detect_encoding(r)
             status_code = r.status_code
+            reason = r.reason
             current_url = str(r.url)
         except requests.exceptions.HTTPError as e:
             status_code = -2
@@ -168,20 +109,20 @@ class HTTPRequest(threading.Thread):
             status_code = -7
             reason = e
             r = None
+        finally:
+            end_time = datetime.datetime.now()
+            time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
-        end_time = datetime.datetime.now()
-        time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-
-        return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r}
+            return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r}
 
     def run(self):
-        while True:
+        while not self.event.is_set():
             request = self.q_in.get()
             if request is None:
                 self.q_in.task_done()
                 break
             if self.send_head_request(session=self.session, request=request):
-                response = self.send_get_request(session=self.session, request=request)
+                response = self.send_get_request(session=self.session, request=request, follow_redirection=self.follow_redirection, verify=self.verify)
                 self.q_out.put(response)
             self.q_in.task_done()
 
@@ -236,10 +177,10 @@ class Config():
         if self.auth:
             self.user = self.load(conf, self.tag, "USER")
             self.password = self.load(conf, self.tag, "PASS")
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept-Charset": "utf-8;"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
             self.payload = {"USER": self.user, "PASSWORD": self.password}
         else:
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36", "Accept-Charset": "utf-8"}
+            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
             self.payload = {}
         self.depth = self.load(conf, self.tag, "DEPTH", int)
         self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
@@ -249,34 +190,116 @@ class Config():
         output_formats = self.load(conf, self.tag, "FORMAT")
         self.output_format = [str(i) for i in output_formats.split(",")]
         self.sort = self.load(conf, self.tag, "SORT")
+        _follow_redirection = self.load(conf, self.tag, "FOLLOW_REDIRECTION")
+        if _follow_redirection == "YES":
+            self.follow_redirection = True
+        else:
+            self.follow_redirection = False
+        _verify = self.load(conf, self.tag, "VERIFY_CERTIFICATE")
+        if _verify == "YES":
+            self.verify = True
+        else:
+            self.verify = False
+
+"""
+Ctrl + C handler
+"""
+def signal_handler(signal, frame):
+    close()
+
+"""
+Initialize variable
+"""
+def initialize(config, decode=None):
+    global total_links, total_output_links, history_out_queue, history_in_queue, threads, event, sessions, num_of_worker_threads
+
+    total_links = 0
+    total_output_links = 0
+    history_out_queue = queue.Queue(2000)
+    history_in_queue = queue.Queue(2000)
+    threads = []
+    sessions = []
+    num_of_worker_threads = config.threshold
+    if config.depth == 0:
+        num_of_worker_threads = 1
+    signal.signal(signal.SIGINT, signal_handler)
+
+    requests.packages.urllib3.disable_warnings()
+    session = requests.Session()
+    session.mount("https://", TLSAdapter())
+    sessions.append(session)
+    (source, history) = authenticate(session=session, config=config, decode=decode)
+    linktexts = find_linktexts(source=source)
+
+    event = threading.Event()
+    if history[config.target_url]["status_code"] == 200:
+        for i in range(0, num_of_worker_threads, 1):
+            new_session = copy.deepcopy(session)
+            sessions.append(new_session)
+            thread = HTTPRequest(i, str(i), event, new_session, config.verify, config.follow_redirection, history_in_queue, history_out_queue)
+            thread.start()
+            threads.append(thread)
+
+    return (session, history, source, linktexts)
+
+"""
+Close
+"""
+def close():
+    global sessions, threads, event, num_of_worker_threads, history_in_queue
+
+    for i in range(0, num_of_worker_threads, 1):
+        history_in_queue.put(None)
+    event.set()
+    for thread in threads:
+        thread.join()
+    for session in sessions:
+        session.close()
+
+    quit()
 
 """
 Encoding detection
 """
 def detect_encoding(r):
-    detector = UniversalDetector()
+    content1 = None
+    content2 = None
+    header = None
 
-    lines = r.content.splitlines()
-    for line in lines:
-        detector.feed(line)
-        if detector.done:
-            break
+    try:
+        contentsoup = BeautifulSoup(r.content.decode("utf-8", "ignore"), "lxml")
+        pattern = re.compile("charset=([0-9A-Za-z\-]+)")
 
-    detector.close()
+        metatag = contentsoup.select("meta[charset]")
+        for linktext in metatag:
+            content1 = str(linktext["charset"]).lower()
 
-    return detector.result["encoding"]
+        metatag = contentsoup.select('meta[content*="charset="]')
+        for linktext in metatag:
+            content2 = str(re.findall(pattern, linktext["content"])[0]).lower()
+
+        header = requests.utils.get_encoding_from_headers(r.headers)
+
+        if content1 is not None:
+            return content1
+        elif content2 is not None:
+            return content2
+        else:
+            return header
+    except:
+        return None
 
 """
 history handler
 """
-def history_handler(init=False, history={}, url="", parent_url=[], link_url="", link_name="", current_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
+def history_handler(init=False, history={}, url="", parent_urls=[], link_url="", link_name="", current_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
     if url == "" or history is None:
         print("History update failed.")
         return history
 
     if init:
         history[url] = {}
-        history[url]["parent_url"] = parent_url
+        history[url]["parent_url"] = parent_urls
         history[url]["link_url"] = link_url
         history[url]["link_name"] = link_name
         history[url]["current_url"] = current_url
@@ -290,8 +313,9 @@ def history_handler(init=False, history={}, url="", parent_url=[], link_url="", 
     else:
         if url not in history:
             history_handler(init=True, history=history, url=url)
-        if len(parent_url) != 0:
-            history[url]["parent_url"]+parent_url
+        for parent_url in parent_urls:
+            if parent_url not in history[url]["parent_url"]:
+                history[url]["parent_url"].append(parent_url)
         if link_url != "":
             history[url]["link_url"] = link_url
         if link_name != "":
@@ -319,19 +343,21 @@ def history_handler(init=False, history={}, url="", parent_url=[], link_url="", 
 - Selenium Web Driver
     - just use selenium for web url after redirecting
 """
-def execute_script(url):
-    # wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs")
-    wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
-    result = ""
+def run_webdriver(url, follow_redirection=False):
+    if not follow_redirection:
+        return url
+
+    # Authentication session synchronization between requests and selenium problem. TODO:
+    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
+    # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     try:
         wd.get(url)
         result = wd.current_url
     except:
         result = url
-
-    wd.close()
-
-    return result
+    finally:
+        wd.close()
+        return result
 
 """
 Navigate into the target website
@@ -358,7 +384,7 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
 
                 continue
             else:
-                history = history_handler(history=history, url=sub_url, parent_url=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
+                history = history_handler(history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
 
             history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
 
@@ -372,8 +398,12 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
 
             if history[sub_url]["status_code"] == 200:
                 if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
-                    if r is not None:
-                        links.append((sub_url, r.text))
+                    try:
+                        pattern = "text/"
+                        if bool(re.search(pattern, r.headers["Content-Type"])):
+                            links.append((sub_url, r.text))
+                    except:
+                        pass
 
             if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
                 history[config.current_url]["contained_broken_link"] += 1
@@ -427,21 +457,23 @@ def authenticate(session, config, depth=0, decode=None):
     start_time = datetime.datetime.now()
     try:
         total_links += 1
-        r = session.get(config.target_url, headers=config.header, verify=False)
-        # If it crashs with 403 error code, then using selenium to double check
-        if r.status_code == 403:
-            url = execute_script(config.target_url)
-            if url != config.target_url:
-                r = session.get(url, headers=config.header, verify=False)
+        # utf-8 and iso-8859-1 misuse problem. TODO:
+        url = run_webdriver(config.target_url, config.follow_redirection)
+        r = session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
+        # If it crashs with 403 error code, then using selenium to double check. TODO:
+        # if r.status_code == 403:
+        #     url = run_webdriver(config.target_url)
+        #     if url != config.target_url:
+        #         r = session.get(url, timeout=config.timeout, headers=config.header, verify=True)
 
         if config.auth:
-            r = session.post(r.url, headers=config.header, data=config.payload, verify=True)
+            r = session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
 
         r.encoding = detect_encoding(r)
-        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, depth=depth)
+        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=depth)
     except KeyboardInterrupt:
-        print("Bye~ Bye~\n")
-        quit()
+        print("Ctrl + C detect\n")
+        close()
     except requests.exceptions.HTTPError as e:
         history = history_handler(history=history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
         if history[config.target_url]["status_code"] not in config.filter_code:
@@ -480,7 +512,16 @@ def authenticate(session, config, depth=0, decode=None):
     if history[config.target_url]["status_code"] not in config.filter_code:
         total_output_links += 1
 
-    ret_val = (r.text, history)
+    ret_val = ("", history)
+    if history[config.target_url]["status_code"] == 200:
+        try:
+            pattern = "text/"
+            if bool(re.search(pattern, r.headers["Content-Type"])):
+                ret_val = (r.text, history)
+        except:
+            pass
+        finally:
+            return ret_val
 
     return ret_val
 
@@ -519,7 +560,7 @@ def file_generator(history, logger, config, output_filename):
             for log in history:
                 if history[log]["depth"] not in config.print_depth:
                     continue
-                if history[log]["status_code"] not in config.filter_code:
+                if history[log]["status_code"] not in config.filter_code or history[log]["contained_broken_link"] != 0:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log)
                     try:
@@ -561,7 +602,7 @@ def file_generator(history, logger, config, output_filename):
             for log in sort_by_status:
                 if log["depth"] not in config.print_depth:
                     continue
-                if log["status_code"] not in config.filter_code:
+                if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
                     locate = etree.SubElement(time, "locate")
                     locate.set("value", log["link_url"])
                     try:
@@ -610,7 +651,7 @@ def file_generator(history, logger, config, output_filename):
                 for log in history:
                     if history[log]["depth"] not in config.print_depth:
                         continue
-                    if history[log]["status_code"] not in config.filter_code:
+                    if history[log]["status_code"] not in config.filter_code or history[log]["contained_broken_link"] != 0:
                         try:
                             #writer.writerow({"datetime": date_time, "parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "contained_broken_link": str(history[log]["contained_broken_link"]), "admin_email": str(history[log]["admin_email"]), "admin_unit": str(history[log]["admin_unit"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
                             writer.writerow({"日期時間": date_time, "從何而來": str(history[log]["parent_url"]), "連結網址": str(history[log]["link_url"]), "連結名稱": str(history[log]["link_name"]), "當前網址": str(history[log]["current_url"]), "狀態碼": str(history[log]["status_code"]), "第一層失連數": str(history[log]["contained_broken_link"]), "負責人email": str(history[log]["admin_email"]), "負責人單位": str(history[log]["admin_unit"]), "花費時間": str(history[log]["time_cost"]), "原因": str(history[log]["reason"])})
@@ -635,7 +676,7 @@ def file_generator(history, logger, config, output_filename):
                 for log in sort_by_status:
                     if log["depth"] not in config.print_depth:
                         continue
-                    if log["status_code"] not in config.filter_code:
+                    if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
                         try:
                             #writer.writerow({"datetime": date_time, "parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "contained_broken_link": str(log["contained_broken_link"]), "admin_email": str(log["admin_email"]), "admin_unit": str(log["admin_unit"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
                             writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
