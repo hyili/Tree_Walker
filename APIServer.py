@@ -28,15 +28,16 @@ class HTTPRequestHandler(threading.Thread):
         global logger
 
         if seperate:
-            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --no-redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
+            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
         else:
-            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --no-redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
+            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
 
         if record in ["400", "401", "403", "404", "500", "503", "-3", "-5"]:
             print(str(request["counter"])+" "+request["title"])
             print("Output. ("+record+")")
             error_msg = error_code_description(int(record))
-            #os.system("./Mail.py --tag WEBCHECK --sender hyili@itri.org.tw --receiver a19931031@gmail.com --secretccreceiver "+request["mailcc"]+" --subject \"請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>網站」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>提醒您所有報表皆透由機器自動做偵測和記錄，僅能呈現程式運作當下網站實際狀況，以上結果僅供參考。<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
+            # temp
+            print("./Mail.py --tag WEBCHECK --sender hyili@itri.org.tw --receiver a19931031@gmail.com --ccreceiver "+request["mailcc"]+" --subject \"您好，<br>請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>提醒您所有報表皆透由機器自動做偵測和記錄，僅能呈現程式運作當下網站實際狀況，以上結果僅供參考。<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
             logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" sent OK")
         else:
             print(str(request["counter"])+" "+request["title"])
@@ -91,9 +92,10 @@ Argument init
 """
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to running API server.")
-    parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads.")
-    parser.add_argument("--onefile", dest="seperate", action="store_false", help="Default is false.")
-    parser.add_argument("--multifile", dest="seperate", action="store_true", help="Default is true.")
+    parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads. Default is 1.")
+    seperate_group = parser.add_mutually_exclusive_group(required=True)
+    seperate_group.add_argument("--onefile", dest="seperate", action="store_false", help="Default is false.")
+    seperate_group.add_argument("--multifile", dest="seperate", action="store_true", help="Default is true.")
 
     return parser.parse_args()
 

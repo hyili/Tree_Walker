@@ -33,12 +33,15 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.", required=True)
     commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
-    commandline_subparser.add_argument("--auth", dest="auth", action="store_true")
-    commandline_subparser.add_argument("--no-auth", dest="auth", action="store_false")
-    commandline_subparser.add_argument("--verify-cert", dest="verify", action="store_true")
-    commandline_subparser.add_argument("--no-verify-cert", dest="verify", action="store_false")
-    commandline_subparser.add_argument("--redirect", dest="redirect", action="store_true")
-    commandline_subparser.add_argument("--no-redirect", dest="redirect", action="store_false")
+    auth_group = commandline_subparser.add_mutually_exclusive_group(required=True)
+    auth_group.add_argument("--auth", dest="auth", action="store_true")
+    auth_group.add_argument("--no-auth", dest="auth", action="store_false")
+    cert_group = commandline_subparser.add_mutually_exclusive_group(required=True)
+    cert_group.add_argument("--verify-cert", dest="verify", action="store_true")
+    cert_group.add_argument("--no-verify-cert", dest="verify", action="store_false")
+    redirect_group = commandline_subparser.add_mutually_exclusive_group(required=True)
+    redirect_group.add_argument("--redirect", dest="redirect", action="store_true")
+    redirect_group.add_argument("--no-redirect", dest="redirect", action="store_false")
     commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
@@ -48,12 +51,13 @@ def arg_initialize(argv):
 """
 Parse function
 """
-def parse_funct(tag, conf, logger):
+def parse_funct(filename, conf, logger):
     (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
     if conf.depth > 0:
         history.update(Request.navigate(linktexts=linktexts, history=history, config=conf, decode="utf-8"))
-    Request.file_generator(history=history, config=conf, logger=logger, output_filename=tag)
+    Request.file_generator(history=history, config=conf, logger=logger, output_filename=filename)
     Request.close()
+    quit()
 
 """
 Round function
@@ -65,7 +69,7 @@ def round_funct(args, logger):
             conf.load_config()
             parse_funct(tag, conf, logger)
     elif args.subparser_name == "commandline":
-        tag = args.filename
+        filename = args.filename
         conf = Request.Config(filename=".requests.conf", tag=args.tag)
         conf.load_config()
 
@@ -82,7 +86,7 @@ def round_funct(args, logger):
         if args.depth >= 0:
             conf.depth = args.depth
 
-        parse_funct(tag, conf, logger)
+        parse_funct(filename, conf, logger)
 
 """
 """

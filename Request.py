@@ -43,7 +43,67 @@ Requests TLS Adapter
 """
 class TLSAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_SSLv23)
+        self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_TLSv1)
+
+"""
+Authentication class
+"""
+class Authenticate():
+    def __init__(self, session, config, decode):
+        self.session = session
+        self.config = config
+        self.decode = decode
+        self.max_retries = 3
+        self.history = None
+
+    def get_session(self):
+        return self.session
+
+    def get_history(self):
+        return self.history
+
+    def authenticate(self, retries=0):
+        self.history = history_handler(init=True, url=self.config.target_url)
+        r = None
+
+        try:
+            start_time = datetime.datetime.now()
+            url = run_webdriver(self.config.target_url, self.config.timeout, self.config.follow_redirection, self.config.verify)
+            r = self.session.get(url, timeout=self.config.timeout, headers=self.config.header, verify=self.config.verify)
+
+            if self.config.auth:
+                r = self.session.post(r.url, timeout=self.config.timeout, headers=self.config.header, data=self.config.payload, verify=True)
+
+            r.encoding = detect_encoding(r)
+            self.history = history_handler(history=self.history, url=self.config.target_url, current_url=r.url, status_code=r.status_code, link_name=self.config.title, link_url=self.config.target_url, admin_email=self.config.email, admin_unit=self.config.unit, reason=r.reason, depth=0)
+        except requests.exceptions.HTTPError as e:
+            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-2, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            r = None
+        except requests.exceptions.Timeout as e:
+            if retries < self.max_retries:
+                response = self.authenticate(retries=retries+1)
+                return response
+            else:
+                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-3, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+                r = None
+        except requests.exceptions.TooManyRedirects as e:
+            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-4, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            r = None
+        except requests.exceptions.ConnectionError as e:
+            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-5, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            r = None
+        except requests.exceptions.InvalidSchema as e:
+            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-6, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            r = None
+        except Exception as e:
+            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-7, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            r = None
+        finally:
+            end_time = datetime.datetime.now()
+            time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+            self.history[self.config.target_url]["time_cost"] = time_cost
+
+            return r
 
 """
 Thread class
@@ -59,27 +119,19 @@ class HTTPRequest(threading.Thread):
         self.thread_name = thread_name
         self.q_in = q_in
         self.q_out = q_out
+        self.max_retries = 3
 
     def send_head_request(self, session, request):
         return True
 
-    def send_get_request(self, session, request, follow_redirection=False, verify=False):
+    def send_get_request(self, session, request, retries=0, follow_redirection=False, verify=False):
         current_url = ""
         r = None
 
-        if "counter" in request and "total" in request:
-            sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
-
         try:
             start_time = datetime.datetime.now()
-            # utf-8 and iso-8859-1 misuse problem. TODO:
-            url = run_webdriver(request["url"], follow_redirection)
+            url = run_webdriver(request["url"], request["timeout"], follow_redirection, verify=verify)
             r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=verify)
-            # If it crashs with 403 error code, then using selenium to double check. TODO:
-            # if r.status_code == 403:
-            #     url = run_webdriver(request["url"])
-            #     if url != request["url"]:
-            #         r = session.get(url, headers=request["header"], verify=True)
 
             r.encoding = detect_encoding(r)
             status_code = r.status_code
@@ -90,9 +142,13 @@ class HTTPRequest(threading.Thread):
             reason = e
             r = None
         except requests.exceptions.Timeout as e:
-            status_code = -3
-            reason = e
-            r = None
+            if retries < self.max_retries:
+                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
+                return response
+            else:
+                status_code = -3
+                reason = e
+                r = None
         except requests.exceptions.TooManyRedirects as e:
             status_code = -4
             reason = e
@@ -122,6 +178,8 @@ class HTTPRequest(threading.Thread):
                 self.q_in.task_done()
                 break
             if self.send_head_request(session=self.session, request=request):
+                if "counter" in request and "total" in request:
+                    sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
                 response = self.send_get_request(session=self.session, request=request, follow_redirection=self.follow_redirection, verify=self.verify)
                 self.q_out.put(response)
             self.q_in.task_done()
@@ -206,6 +264,7 @@ Ctrl + C handler
 """
 def signal_handler(signal, frame):
     close()
+    quit()
 
 """
 Initialize variable
@@ -255,8 +314,6 @@ def close():
         thread.join()
     for session in sessions:
         session.close()
-
-    quit()
 
 """
 Encoding detection
@@ -343,16 +400,19 @@ def history_handler(init=False, history={}, url="", parent_urls=[], link_url="",
 - Selenium Web Driver
     - just use selenium for web url after redirecting
 """
-def run_webdriver(url, follow_redirection=False):
+def run_webdriver(url, timeout, follow_redirection=False, verify=False):
     if not follow_redirection:
         return url
 
     # Authentication session synchronization between requests and selenium problem. TODO:
-    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
+    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=["--ignore-ssl-errors="+str(verify).lower(), "--ssl-protocol=any"])
     # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
+    wd.set_page_load_timeout(timeout)
     try:
         wd.get(url)
         result = wd.current_url
+        if wd.current_url == "about:blank":
+            result = url
     except:
         result = url
     finally:
@@ -450,64 +510,14 @@ def factor_url(current_url, sub_url):
 Will be forwarded to another authentication page
 Then, login with payload information
 """
-def authenticate(session, config, depth=0, decode=None):
+def authenticate(session, config, decode=None):
     global total_links, total_output_links
-    history = history_handler(init=True, url=config.target_url)
 
-    start_time = datetime.datetime.now()
-    try:
-        total_links += 1
-        # utf-8 and iso-8859-1 misuse problem. TODO:
-        url = run_webdriver(config.target_url, config.follow_redirection)
-        r = session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
-        # If it crashs with 403 error code, then using selenium to double check. TODO:
-        # if r.status_code == 403:
-        #     url = run_webdriver(config.target_url)
-        #     if url != config.target_url:
-        #         r = session.get(url, timeout=config.timeout, headers=config.header, verify=True)
+    total_links += 1
 
-        if config.auth:
-            r = session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
-
-        r.encoding = detect_encoding(r)
-        history = history_handler(history=history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=depth)
-    except KeyboardInterrupt:
-        print("Ctrl + C detect\n")
-        close()
-    except requests.exceptions.HTTPError as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-    except requests.exceptions.Timeout as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-    except requests.exceptions.TooManyRedirects as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-    except requests.exceptions.ConnectionError as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-    except requests.exceptions.InvalidSchema as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-    except Exception as e:
-        history = history_handler(history=history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=depth)
-        if history[config.target_url]["status_code"] not in config.filter_code:
-            total_output_links += 1
-        return ("", history)
-
-    end_time = datetime.datetime.now()
-    time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-    history[config.target_url]["time_cost"] = time_cost
+    auth = Authenticate(session, config, decode)
+    response = auth.authenticate()
+    history = auth.get_history()
 
     if history[config.target_url]["status_code"] not in config.filter_code:
         total_output_links += 1
@@ -516,8 +526,8 @@ def authenticate(session, config, depth=0, decode=None):
     if history[config.target_url]["status_code"] == 200:
         try:
             pattern = "text/"
-            if bool(re.search(pattern, r.headers["Content-Type"])):
-                ret_val = (r.text, history)
+            if bool(re.search(pattern, response.headers["Content-Type"])):
+                ret_val = (response.text, history)
         except:
             pass
         finally:
@@ -642,7 +652,6 @@ def file_generator(history, logger, config, output_filename):
         if config.sort == "URL":
             with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
-                #fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "contained_broken_link", "admin_email", "admin_unit", "time_cost", "reason", "total_output_links", "total_links"]
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -653,21 +662,17 @@ def file_generator(history, logger, config, output_filename):
                         continue
                     if history[log]["status_code"] not in config.filter_code or history[log]["contained_broken_link"] != 0:
                         try:
-                            #writer.writerow({"datetime": date_time, "parent_url": str(history[log]["parent_url"]), "link_url": str(history[log]["link_url"]), "link_name": str(history[log]["link_name"]), "current_url": str(history[log]["current_url"]), "status_code": str(history[log]["status_code"]), "contained_broken_link": str(history[log]["contained_broken_link"]), "admin_email": str(history[log]["admin_email"]), "admin_unit": str(history[log]["admin_unit"]), "time_cost": str(history[log]["time_cost"]), "reason": str(history[log]["reason"])})
                             writer.writerow({"日期時間": date_time, "從何而來": str(history[log]["parent_url"]), "連結網址": str(history[log]["link_url"]), "連結名稱": str(history[log]["link_name"]), "當前網址": str(history[log]["current_url"]), "狀態碼": str(history[log]["status_code"]), "第一層失連數": str(history[log]["contained_broken_link"]), "負責人email": str(history[log]["admin_email"]), "負責人單位": str(history[log]["admin_unit"]), "花費時間": str(history[log]["time_cost"]), "原因": str(history[log]["reason"])})
                         except Exception as e:
                             print(e)
                             continue
-                #writer.writerow({"datetime": date_time, "total_output_links": str(total_output_links), "total_links": str(total_links)})
                 if config.depth != 0:
-                    #writer.writerow({"日期時間": date_time, "共印出幾條網址": str(total_output_links), "共掃過幾條網址": str(total_links)})
                     pass
                 csvfile.close()
         elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
-                #fieldnames = ["datetime", "parent_url", "link_url", "link_name", "current_url", "status_code", "contained_broken_link", "admin_email", "admin_unit", "time_cost", "reason", "total_links", "total_output_links"]
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -678,19 +683,15 @@ def file_generator(history, logger, config, output_filename):
                         continue
                     if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
                         try:
-                            #writer.writerow({"datetime": date_time, "parent_url": str(log["parent_url"]), "link_url": str(log["link_url"]), "link_name": str(log["link_name"]), "current_url": str(log["current_url"]), "status_code": str(log["status_code"]), "contained_broken_link": str(log["contained_broken_link"]), "admin_email": str(log["admin_email"]), "admin_unit": str(log["admin_unit"]), "time_cost": str(log["time_cost"]), "reason": str(log["reason"])})
                             writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
                         except Exception as e:
                             print(e)
                             continue
-                #writer.writerow({"datetime": date_time, "total_output_links": str(total_output_links), "total_links": str(total_links)})
                 if config.depth != 0:
-                    #writer.writerow({"日期時間": date_time, "共印出幾條網址": str(total_output_links), "共掃過幾條網址": str(total_links)})
                     pass
                 csvfile.close()
 
     if "JSON" in config.output_format:
-        #print("Not implement")
         pass
     if "STDOUT" in config.output_format:
         print("\n"+str(history[config.target_url]["status_code"]))

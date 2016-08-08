@@ -34,6 +34,7 @@ def main():
             print(url)
             mailto = root.get_element_by_id(i)[2].text_content()+";"
             print(mailto)
+            #mailcc = "hyili@itri.org.tw;suyihui.900360@itri.org.tw;JanetChang@itri.org.tw;"
             mailcc = "hyili@itri.org.tw;"
             unit = root.get_element_by_id(i)[3].text_content()
             print(unit)
@@ -50,6 +51,7 @@ def main():
         i += 1
 
     Request.close()
+    quit()
 
 if __name__ == "__main__":
     main()
