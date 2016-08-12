@@ -87,7 +87,7 @@ def main():
         index = datetime.datetime.now()-datetime.timedelta(hours=offset)
 
         count = 0
-        log = os.popen("cat main.log")
+        log = os.popen("cat logs/main.log")
         for line in log:
             part1 = line.split(" ")
             if part1[7] != "["+tag+"]":

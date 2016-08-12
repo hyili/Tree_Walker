@@ -28,9 +28,9 @@ class HTTPRequestHandler(threading.Thread):
         global logger
 
         if seperate:
-            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
+            record = os.popen("./Main.py commandline --tag WEBCHECK --no-verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
         else:
-            record = os.popen("./Main.py commandline --tag WEBCHECK --verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
+            record = os.popen("./Main.py commandline --tag WEBCHECK --no-verify-cert --redirect --no-auth --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
 
         if record in ["400", "401", "403", "404", "500", "503", "-3", "-5"]:
             print(str(request["counter"])+" "+request["title"])

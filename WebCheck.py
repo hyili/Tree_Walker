@@ -34,6 +34,7 @@ def main():
             print(url)
             mailto = root.get_element_by_id(i)[2].text_content()+";"
             print(mailto)
+            # temp
             #mailcc = "hyili@itri.org.tw;suyihui.900360@itri.org.tw;JanetChang@itri.org.tw;"
             mailcc = "hyili@itri.org.tw;"
             unit = root.get_element_by_id(i)[3].text_content()

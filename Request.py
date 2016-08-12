@@ -405,7 +405,7 @@ def run_webdriver(url, timeout, follow_redirection=False, verify=False):
         return url
 
     # Authentication session synchronization between requests and selenium problem. TODO:
-    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=["--ignore-ssl-errors="+str(verify).lower(), "--ssl-protocol=any"])
+    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=["--ignore-ssl-errors="+str(not verify).lower(), "--ssl-protocol=any"])
     # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     wd.set_page_load_timeout(timeout)
     try:
