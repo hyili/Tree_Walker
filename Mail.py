@@ -20,7 +20,7 @@ def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to send email.")
     parser.add_argument("--tag", help="Specify tag in the conf.", required=True)
     parser.add_argument("--offset", type=int, help="Specify timing offset.")
-    parser.add_argument("--sender", help="Specify sender email address.", required=True)
+    parser.add_argument("--sender", default="", help="Specify sender email address.", required=True)
     parser.add_argument("--receiver", nargs="*", help="Specify receiver email addresses.", required=True)
     parser.add_argument("--ccreceiver", nargs="*", default=[], help="Specify ccreceiver email addresses. Default is nothing.")
     parser.add_argument("--secretccreceiver", nargs="*", default=[], help="Specify secret ccreceiver email addresses. Default is nothing.")
@@ -77,6 +77,8 @@ def main():
 
     conf = Request.Config(filename=".requests.conf", tag=tag)
     conf.load_config()
+    if sender == "":
+        sender = conf.payload["USER"]+"@itri.org.tw"
     username = conf.payload["USER"]
     password = conf.payload["PASSWORD"]
 
