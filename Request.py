@@ -232,13 +232,12 @@ class Config():
         self.print_depth = [int(i) for i in print_depths.split(",")]
         self.target_url = factor_url(self.load(conf, self.tag, "TARGET_URL"), "")
         self.current_url = self.target_url
+        self.user = self.load(conf, self.tag, "USER")
+        self.password = self.load(conf, self.tag, "PASS")
+        self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
         if self.auth:
-            self.user = self.load(conf, self.tag, "USER")
-            self.password = self.load(conf, self.tag, "PASS")
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
             self.payload = {"USER": self.user, "PASSWORD": self.password}
         else:
-            self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
             self.payload = {}
         self.depth = self.load(conf, self.tag, "DEPTH", int)
         self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
