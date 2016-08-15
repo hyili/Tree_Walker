@@ -93,7 +93,7 @@ Argument init
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to running API server.")
     parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads. Default is 1.")
-    seperate_group = parser.add_mutually_exclusive_group(required=True)
+    seperate_group = parser.add_mutually_exclusive_group()
     seperate_group.add_argument("--onefile", default=False, dest="seperate", action="store_false", help="Default is onefile.")
     seperate_group.add_argument("--multifile", default=False, dest="seperate", action="store_true", help="Default is onefile.")
 
