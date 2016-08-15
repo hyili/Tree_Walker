@@ -1,5 +1,5 @@
-#!/usr/local/bin/python3
-# -*- coding:utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 from flask import Flask, url_for
 from flask import request

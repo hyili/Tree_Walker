@@ -52,7 +52,7 @@ TIMEOUT=5
 # To enable/disable multithread for running this script                                   #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-MULTITHREAD=NO
+MULTITHREAD=YES
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
@@ -156,8 +156,8 @@ FORMAT=CSV
 
 
 [APISERVER]
-USER=password
-PASS=username
+USER=username
+PASS=password
 AUTH=NO
 FOLLOW_REDIRECTION=YES
 VERIFY_CERTIFICATE=NO

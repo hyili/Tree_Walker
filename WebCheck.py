@@ -1,5 +1,5 @@
-#!/usr/local/bin/python3
-# -*- coding:utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import Request
 import lxml.html
@@ -34,10 +34,9 @@ def main():
             print(url)
             mailto = root.get_element_by_id(i)[2].text_content()+";"
             print(mailto)
-            # temp
-            #mailcc = "hyili@itri.org.tw;suyihui.900360@itri.org.tw;JanetChang@itri.org.tw;"
-            mailcc = "hyili@itri.org.tw;"
-            unit = root.get_element_by_id(i)[3].text_content()
+            mailcc = root.get_element_by_id(i)[3].text_content()+";"
+            print(mailcc)
+            unit = root.get_element_by_id(i)[4].text_content()
             print(unit)
 
             Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit, "timeout": conf.timeout, "header": conf.header})
