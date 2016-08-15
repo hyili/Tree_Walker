@@ -33,15 +33,15 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.", required=True)
     commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
-    auth_group = commandline_subparser.add_mutually_exclusive_group(required=True)
-    auth_group.add_argument("--auth", dest="auth", action="store_true")
-    auth_group.add_argument("--no-auth", dest="auth", action="store_false")
-    cert_group = commandline_subparser.add_mutually_exclusive_group(required=True)
-    cert_group.add_argument("--verify-cert", dest="verify", action="store_true")
-    cert_group.add_argument("--no-verify-cert", dest="verify", action="store_false")
-    redirect_group = commandline_subparser.add_mutually_exclusive_group(required=True)
-    redirect_group.add_argument("--redirect", dest="redirect", action="store_true")
-    redirect_group.add_argument("--no-redirect", dest="redirect", action="store_false")
+    auth_group = commandline_subparser.add_mutually_exclusive_group()
+    auth_group.add_argument("--auth", default=None, dest="auth", action="store_true")
+    auth_group.add_argument("--no-auth", default=None, dest="auth", action="store_false")
+    cert_group = commandline_subparser.add_mutually_exclusive_group()
+    cert_group.add_argument("--verify-cert", default=None, dest="verify", action="store_true")
+    cert_group.add_argument("--no-verify-cert", default=None, dest="verify", action="store_false")
+    redirect_group = commandline_subparser.add_mutually_exclusive_group()
+    redirect_group.add_argument("--redirect", default=None, dest="redirect", action="store_true")
+    redirect_group.add_argument("--no-redirect", default=None, dest="redirect", action="store_false")
     commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
@@ -73,9 +73,12 @@ def round_funct(args, logger):
         conf = Request.Config(filename=".requests.conf", tag=args.tag)
         conf.load_config()
 
-        conf.auth = args.auth
-        conf.verify = args.verify
-        conf.follow_redirection = args.redirect
+        if args.auth is not None:
+            conf.auth = args.auth
+        if args.verify is not None:
+            conf.verify = args.verify
+        if args.redirect is not None:
+            conf.follow_redirection = args.redirect
         conf.title = args.title
         conf.email = args.email
         conf.unit = args.unit
