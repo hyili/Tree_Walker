@@ -558,7 +558,8 @@ def file_generator(history, logger, config, output_filename):
 
     directory = "output/"
     output_filename = output_filename.replace("/", " ")
-    logger.warn("["+config.tag+"] filter_code: {"+str(config.filter_code)+"}, print_depth: {"+str(config.print_depth)+"} Genrating "+output_filename+"...")
+    if total_output_links > 0:
+        logger.warn("["+config.tag+"] filter_code: {"+str(config.filter_code)+"}, print_depth: {"+str(config.print_depth)+"} Generating "+output_filename+"...")
     if "XML" in config.output_format:
         if config.sort == "URL":
             time = etree.Element("time")
