@@ -165,7 +165,7 @@ DEPTH=0
 TIMEOUT=20
 PRINT_DEPTH=0
 THRESHOLD=3
-FILTER=0
+FILTER=200
 FORMAT=CSV,STDOUT
 
 [WEBCHECK]
@@ -175,5 +175,5 @@ DEPTH=0
 TIMEOUT=20
 FILTER=0
 FORMAT=CSV,STDOUT
-TARGET_URL=https://webcheck.itri.org.tw/webstatus.html
-DOMAIN_URL=https://webcheck.itri.org.tw/webstatus.html
+TARGET_URL=https://webcheck.itri.org.tw/webstatus.aspx
+DOMAIN_URL=https://webcheck.itri.org.tw/webstatus.aspx

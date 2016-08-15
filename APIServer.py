@@ -16,15 +16,16 @@ import argparse
 app = Flask(__name__)
 
 class HTTPRequestHandler(threading.Thread):
-    def __init__(self, thread_id, thread_name, event, request_queue, seperate):
+    def __init__(self, thread_id, thread_name, event, request_queue, seperate, send_mail):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
         self.event = event
         self.request_queue = request_queue
         self.seperate = seperate
+        self.send_mail = send_mail
 
-    def handler(self, request, seperate):
+    def handler(self, request, seperate, send_mail):
         global logger
 
         if seperate:
@@ -37,7 +38,10 @@ class HTTPRequestHandler(threading.Thread):
             print("Output. ("+record+")")
             error_msg = error_code_description(int(record))
             # temp
-            print("./Mail.py --tag APISERVER --sender hyili@itri.org.tw --receiver a19931031@gmail.com --ccreceiver "+request["mailcc"]+" --subject \"您好，<br>請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>提醒您所有報表皆透由機器自動做偵測和記錄，僅能呈現程式運作當下網站實際狀況，以上結果僅供參考。<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
+            if send_mail:
+                os.popen("./Mail.py --tag APISERVER --sender hyili@itri.org.tw --receiver a19931031@gmail.com --ccreceiver "+request["mailcc"]+" --subject \"您好，<br>請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>提醒您所有報表皆透由機器自動做偵測和記錄，僅能呈現程式運作當下網站實際狀況，以上結果僅供參考。<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
+            else:
+                print("./Mail.py --tag APISERVER --sender hyili@itri.org.tw --receiver a19931031@gmail.com --ccreceiver "+request["mailcc"]+" --subject \"您好，<br>請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>ITRI對外資訊系統登錄及管理平台提供貼心網站偵測服務，每天早上定期為您負責的網站進行偵測，無法提供正常服務時會發信通知您。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>提醒您所有報表皆透由機器自動做偵測和記錄，僅能呈現程式運作當下網站實際狀況，以上結果僅供參考。<br>任何問題，或有收通知信之困擾，歡迎聯絡 蘇益慧#17234 、張惠娟#13968，謝謝您～<br></body></html>\"")
             logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" sent OK")
         else:
             print(str(request["counter"])+" "+request["title"])
@@ -49,7 +53,7 @@ class HTTPRequestHandler(threading.Thread):
             request = self.request_queue.get()
             if request is None:
                 break
-            self.handler(request, self.seperate)
+            self.handler(request, self.seperate, self.send_mail)
 
 """
 Ctrl + C handler
@@ -96,6 +100,9 @@ def arg_initialize(argv):
     seperate_group = parser.add_mutually_exclusive_group()
     seperate_group.add_argument("--onefile", default=False, dest="seperate", action="store_false", help="Default is onefile.")
     seperate_group.add_argument("--multifile", default=False, dest="seperate", action="store_true", help="Default is onefile.")
+    send_mail_group = parser.add_mutually_exclusive_group()
+    send_mail_group.add_argument("--sendmail", default=False, dest="send_mail", action="store_true", help="Default is not to send mail.")
+    send_mail_group.add_argument("--no-sendmail", default=False, dest="send_mail", action="store_false", help="Default is not to send mail.")
 
     return parser.parse_args()
 
@@ -127,7 +134,7 @@ def initialize(args):
     num_of_worker_threads = args.threads
     counter = 0
     for i in range(0, num_of_worker_threads, 1):
-        thread = HTTPRequestHandler(i, str(i), event, request_queue, args.seperate)
+        thread = HTTPRequestHandler(i, str(i), event, request_queue, args.seperate, args.send_mail)
         thread.start()
         threads.append(thread)
 
