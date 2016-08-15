@@ -62,7 +62,7 @@ class Authenticate():
     def get_history(self):
         return self.history
 
-    def authenticate(self, retries=0):
+    def authenticate(self, retries=1):
         self.history = history_handler(init=True, url=self.config.target_url)
         r = None
 
