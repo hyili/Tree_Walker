@@ -78,9 +78,9 @@ def main():
     conf = Request.Config(filename=".requests.conf", tag=tag)
     conf.load_config()
     if sender == "":
-        sender = conf.payload["USER"]+"@itri.org.tw"
-    username = conf.payload["USER"]
-    password = conf.payload["PASSWORD"]
+        sender = conf.user+"@itri.org.tw"
+    username = conf.user
+    password = conf.password
 
     filenames = args.files
 
