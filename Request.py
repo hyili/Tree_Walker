@@ -53,7 +53,7 @@ class Authenticate():
         self.session = session
         self.config = config
         self.decode = decode
-        self.max_retries = 3
+        self.max_retries = 5
         self.history = None
 
     def get_session(self):
@@ -77,8 +77,12 @@ class Authenticate():
             r.encoding = detect_encoding(r)
             self.history = history_handler(history=self.history, url=self.config.target_url, current_url=r.url, status_code=r.status_code, link_name=self.config.title, link_url=self.config.target_url, admin_email=self.config.email, admin_unit=self.config.unit, reason=r.reason, depth=0)
         except requests.exceptions.HTTPError as e:
-            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-2, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
-            r = None
+            if retries < self.max_retries:
+                response = self.authenticate(retries=retries+1)
+                return response
+            else:
+                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-2, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+                r = None
         except requests.exceptions.Timeout as e:
             if retries < self.max_retries:
                 response = self.authenticate(retries=retries+1)
@@ -90,8 +94,12 @@ class Authenticate():
             self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-4, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
             r = None
         except requests.exceptions.ConnectionError as e:
-            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-5, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
-            r = None
+            if retries < self.max_retries:
+                response = self.authenticate(retries=retries+1)
+                return response
+            else:
+                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-5, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+                r = None
         except requests.exceptions.InvalidSchema as e:
             self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-6, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
             r = None
@@ -120,7 +128,7 @@ class HTTPRequest(threading.Thread):
         self.thread_name = thread_name
         self.q_in = q_in
         self.q_out = q_out
-        self.max_retries = 3
+        self.max_retries = 5
 
     def send_head_request(self, session, request):
         return True
@@ -139,9 +147,13 @@ class HTTPRequest(threading.Thread):
             reason = r.reason
             current_url = str(r.url)
         except requests.exceptions.HTTPError as e:
-            status_code = -2
-            reason = e
-            r = None
+            if retries < self.max_retries:
+                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
+                return response
+            else:
+                status_code = -2
+                reason = e
+                r = None
         except requests.exceptions.Timeout as e:
             if retries < self.max_retries:
                 response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
@@ -155,9 +167,13 @@ class HTTPRequest(threading.Thread):
             reason = e
             r = None
         except requests.exceptions.ConnectionError as e:
-            status_code = -5
-            reason = e
-            r = None
+            if retries < self.max_retries:
+                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
+                return response
+            else:
+                status_code = -5
+                reason = e
+                r = None
         except requests.exceptions.InvalidSchema as e:
             status_code = -6
             reason = e
@@ -423,6 +439,7 @@ def run_webdriver(url, timeout, driver_location="/usr/local/bin/phantomjs", foll
     wd = webdriver.PhantomJS(executable_path=driver_location, service_args=["--ignore-ssl-errors="+str(not verify).lower(), "--ssl-protocol=any"])
     # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     wd.set_page_load_timeout(timeout)
+    wd.set_script_timeout(timeout)
     try:
         wd.get(url)
         result = wd.current_url
