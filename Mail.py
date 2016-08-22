@@ -20,6 +20,7 @@ def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to send email.")
     parser.add_argument("--tag", help="Specify tag in the conf.", required=True)
     parser.add_argument("--offset", type=int, help="Specify timing offset.")
+    parser.add_argument("--threshold", type=int, help="Specify the threshold of sending the email.")
     parser.add_argument("--sender", default="", help="Specify sender email address.")
     parser.add_argument("--receiver", nargs="*", help="Specify receiver email addresses.", required=True)
     parser.add_argument("--ccreceiver", nargs="*", default=[], help="Specify ccreceiver email addresses. Default is nothing.")
@@ -45,10 +46,10 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
         try:
             with open(filename, "rb") as attached_file:
                 att = MIMEApplication(attached_file.read(), Name=filename)
-                att['Content-Disposition'] = "attachment; filename=\""+filename+"\""
+                att['Content-Disposition'] = "attachment; filename=\""+filename.split("/")[-1]+"\""
                 msg.attach(att)
         except Exception as e:
-            print(e)
+            # print(e)
             quit()
 
     try:
@@ -56,8 +57,9 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
         smtp.ehlo(name="itri.org.tw")
         smtp.login(user=username, password=password)
         smtp.sendmail(from_addr=sender, to_addrs=receivers+ccreceivers+secretccreceivers, msg=msg.as_string())
+        smtp.quit()
     except Exception as e:
-        print(e)
+        # print(e)
         quit()
 
 """
@@ -84,7 +86,7 @@ def main():
 
     filenames = args.files
 
-    if args.offset is not None:
+    if args.offset is not None and args.threshold is not None:
         offset = args.offset
         index = datetime.datetime.now()-datetime.timedelta(hours=offset)
 
@@ -99,7 +101,7 @@ def main():
             if index <= log_time:
                 count += 1
 
-        if count > 2:
+        if count >= args.threshold:
             send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, content, filenames, username, password)
             print("Mail sent.")
         else:

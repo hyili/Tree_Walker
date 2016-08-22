@@ -4,17 +4,22 @@
 import Request
 import lxml.html
 import time
+import os
 
 def main():
     """
     web source
     """
+    # admins = ["suyihui.900360@itri.org.tw", "JanetChang@itri.org.tw", "hyili@itri.org.tw"]
+    admins = ["hyili@itri.org.tw"]
     conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     conf.load_config()
     (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
     if history[conf.target_url]["status_code"] == 200:
         print("OK")
     else:
+        print(history[conf.target_url]["status_code"])
+        print(history[conf.target_url]["reason"])
         quit()
 
     """
@@ -32,9 +37,13 @@ def main():
             print(title)
             url = root.get_element_by_id(i)[1].text_content()
             print(url)
-            mailto = root.get_element_by_id(i)[2].text_content()+";"
+            # mailto = root.get_element_by_id(i)[2].text_content()+";"
+            mailto = "hyili@itri.org.tw;"
             print(mailto)
-            mailcc = root.get_element_by_id(i)[3].text_content()+";suyihui.900360@itri.org.tw;JanetChang@itri.org.tw;hyili@itri.org.tw;"
+            # mailcc = root.get_element_by_id(i)[3].text_content()+";"
+            mailcc = "hyili@itri.org.tw;"
+            for admin in admins:
+                mailcc += admin + ";"
             print(mailcc)
             unit = root.get_element_by_id(i)[4].text_content()
             print(unit)
@@ -50,6 +59,13 @@ def main():
 
         i += 1
 
+    time.sleep(180)
+    if i != 1:
+        receiver = ""
+        for admin in admins:
+            receiver += admin + ";"
+        Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title="+title+"&mailto="+receiver, "timeout": conf.timeout, "header": conf.header})
+    time.sleep(180)
     Request.close()
     quit()
 

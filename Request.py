@@ -68,7 +68,7 @@ class Authenticate():
 
         try:
             start_time = datetime.datetime.now()
-            url = run_webdriver(self.config.target_url, self.config.timeout, self.config.follow_redirection, self.config.verify)
+            url = run_webdriver(self.config.target_url, self.config.timeout, self.config.driver_location, self.config.follow_redirection, self.config.verify)
             r = self.session.get(url, timeout=self.config.timeout, headers=self.config.header, verify=self.config.verify)
 
             if self.config.auth:
@@ -109,10 +109,11 @@ class Authenticate():
 Thread class
 """
 class HTTPRequest(threading.Thread):
-    def __init__(self, thread_id, thread_name, event, session, verify, follow_redirection, q_in, q_out):
+    def __init__(self, thread_id, thread_name, event, session, driver_location, verify, follow_redirection, q_in, q_out):
         threading.Thread.__init__(self)
         self.event = event
         self.session = session
+        self.driver_location = driver_location
         self.verify = verify
         self.follow_redirection = follow_redirection
         self.thread_id = thread_id
@@ -124,13 +125,13 @@ class HTTPRequest(threading.Thread):
     def send_head_request(self, session, request):
         return True
 
-    def send_get_request(self, session, request, retries=0, follow_redirection=False, verify=False):
+    def send_get_request(self, session, driver_location, request, retries=0, follow_redirection=False, verify=False):
         current_url = ""
         r = None
 
         try:
             start_time = datetime.datetime.now()
-            url = run_webdriver(request["url"], request["timeout"], follow_redirection, verify=verify)
+            url = run_webdriver(request["url"], request["timeout"], driver_location, follow_redirection, verify=verify)
             r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=verify)
 
             r.encoding = detect_encoding(r)
@@ -180,7 +181,7 @@ class HTTPRequest(threading.Thread):
             if self.send_head_request(session=self.session, request=request):
                 if "counter" in request and "total" in request:
                     sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
-                response = self.send_get_request(session=self.session, request=request, follow_redirection=self.follow_redirection, verify=self.verify)
+                response = self.send_get_request(session=self.session, driver_location=self.driver_location, request=request, follow_redirection=self.follow_redirection, verify=self.verify)
                 self.q_out.put(response)
             self.q_in.task_done()
 
@@ -218,41 +219,56 @@ class Config():
         conf.sections()
 
         _auth = self.load(conf, self.tag, "AUTH")
+        _multithread = self.load(conf, self.tag, "MULTITHREAD")
+        _threshold = self.load(conf, self.tag, "THRESHOLD", int)
+        _print_depth = self.load(conf, self.tag, "PRINT_DEPTH")
+        _target_url = self.load(conf, self.tag, "TARGET_URL")
+        _current_url = _target_url
+        _user = self.load(conf, self.tag, "USER")
+        _password = self.load(conf, self.tag, "PASS")
+        _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
+        _depth = self.load(conf, self.tag, "DEPTH", int)
+        _timeout = self.load(conf, self.tag, "TIMEOUT", int)
+        _domain_url = self.load(conf, self.tag, "DOMAIN_URL", pattern_generator)
+        _filter_code = self.load(conf, self.tag, "FILTER")
+        _broken_link = self.load(conf, self.tag, "BROKEN_LINK")
+        _output_format = self.load(conf, self.tag, "FORMAT")
+        _sort = self.load(conf, self.tag, "SORT")
+        _follow_redirection = self.load(conf, self.tag, "FOLLOW_REDIRECTION")
+        _driver_location = self.load(conf, self.tag, "DRIVER_LOCATION")
+        _verify = self.load(conf, self.tag, "VERIFY_CERTIFICATE")
+
         if _auth == "YES":
             self.auth = True
         else:
             self.auth = False
-        _multithread = self.load(conf, self.tag, "MULTITHREAD")
         if _multithread == "YES":
             self.multithread = True
         else:
             self.multithread = False
-        self.threshold = self.load(conf, self.tag, "THRESHOLD", int)
-        print_depths = self.load(conf, self.tag, "PRINT_DEPTH")
-        self.print_depth = [int(i) for i in print_depths.split(",")]
-        self.target_url = factor_url(self.load(conf, self.tag, "TARGET_URL"), "")
-        self.current_url = self.target_url
-        self.user = self.load(conf, self.tag, "USER")
-        self.password = self.load(conf, self.tag, "PASS")
-        self.header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
+        self.threshold = _threshold
+        self.print_depth = [int(i) for i in _print_depth.split(",")]
+        self.target_url = factor_url(_target_url, "")
+        self.current_url = _current_url
+        self.user = _user
+        self.password = _password
+        self.header = _header
         if self.auth:
             self.payload = {"USER": self.user, "PASSWORD": self.password}
         else:
             self.payload = {}
-        self.depth = self.load(conf, self.tag, "DEPTH", int)
-        self.timeout = self.load(conf, self.tag, "TIMEOUT", int)
-        self.domain_url = self.load(conf, self.tag, "DOMAIN_URL", pattern_generator)
-        filter_codes = self.load(conf, self.tag, "FILTER")
-        self.filter_code = [int(i) for i in filter_codes.split(",")]
-        output_formats = self.load(conf, self.tag, "FORMAT")
-        self.output_format = [str(i) for i in output_formats.split(",")]
-        self.sort = self.load(conf, self.tag, "SORT")
-        _follow_redirection = self.load(conf, self.tag, "FOLLOW_REDIRECTION")
+        self.depth = _depth
+        self.timeout = _timeout
+        self.domain_url = _domain_url
+        self.filter_code = [int(i) for i in _filter_code.split(",")]
+        self.broken_link = [int(i) for i in _broken_link.split(",")]
+        self.output_format = [str(i) for i in _output_format.split(",")]
+        self.sort = _sort
         if _follow_redirection == "YES":
             self.follow_redirection = True
         else:
             self.follow_redirection = False
-        _verify = self.load(conf, self.tag, "VERIFY_CERTIFICATE")
+        self.driver_location = _driver_location
         if _verify == "YES":
             self.verify = True
         else:
@@ -294,7 +310,7 @@ def initialize(config, decode=None):
         for i in range(0, num_of_worker_threads, 1):
             new_session = copy.deepcopy(session)
             sessions.append(new_session)
-            thread = HTTPRequest(i, str(i), event, new_session, config.verify, config.follow_redirection, history_in_queue, history_out_queue)
+            thread = HTTPRequest(i, str(i), event, new_session, config.driver_location, config.verify, config.follow_redirection, history_in_queue, history_out_queue)
             thread.start()
             threads.append(thread)
 
@@ -399,12 +415,12 @@ def history_handler(init=False, history={}, url="", parent_urls=[], link_url="",
 - Selenium Web Driver
     - just use selenium for web url after redirecting
 """
-def run_webdriver(url, timeout, follow_redirection=False, verify=False):
+def run_webdriver(url, timeout, driver_location="/usr/local/bin/phantomjs", follow_redirection=False, verify=False):
     if not follow_redirection:
         return url
 
     # Authentication session synchronization between requests and selenium problem. TODO:
-    wd = webdriver.PhantomJS(executable_path="/usr/local/bin/phantomjs", service_args=["--ignore-ssl-errors="+str(not verify).lower(), "--ssl-protocol=any"])
+    wd = webdriver.PhantomJS(executable_path=driver_location, service_args=["--ignore-ssl-errors="+str(not verify).lower(), "--ssl-protocol=any"])
     # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     wd.set_page_load_timeout(timeout)
     try:
@@ -435,7 +451,7 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
             counter += 1
 
             if sub_url in history:
-                if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
+                if history[sub_url]["status_code"] in config.broken_link:
                     history[config.current_url]["contained_broken_link"] += 1
 
                 if config.current_url not in history[sub_url]["parent_url"]:
@@ -464,7 +480,7 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                     except:
                         pass
 
-            if history[sub_url]["status_code"] in [400, 401, 403, 404, 500, 503, -3, -5]:
+            if history[sub_url]["status_code"] in config.broken_link:
                 history[config.current_url]["contained_broken_link"] += 1
 
             if history[sub_url]["status_code"] in [-6]:
