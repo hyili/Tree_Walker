@@ -113,6 +113,15 @@ BROKEN_LINK=400,401,403,404,500,503,-3,-5
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
+# MAX_RETRIES={number}                                                                    #
+#                                                                                         #
+# How many times to retry, when a broken link candidate shows up			              #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+MAX_RETRIES=3
+
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
 # FORMAT={one,two,three...}                                                               #
 #                                                                                         #
 # Define the output file format, currently XML, CSV, STDOUT available                     #

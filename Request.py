@@ -53,7 +53,6 @@ class Authenticate():
         self.session = session
         self.config = config
         self.decode = decode
-        self.max_retries = 5
         self.history = None
 
     def get_session(self):
@@ -63,53 +62,46 @@ class Authenticate():
         return self.history
 
     def authenticate(self, retries=1):
+        config = self.config
         self.history = history_handler(init=True, url=self.config.target_url)
         r = None
 
         try:
             start_time = datetime.datetime.now()
-            url = run_webdriver(self.config.target_url, self.config.timeout, self.config.driver_location, self.config.follow_redirection, self.config.verify)
-            r = self.session.get(url, timeout=self.config.timeout, headers=self.config.header, verify=self.config.verify)
+            url = run_webdriver(config.target_url, config.timeout, config.driver_location, config.follow_redirection, config.verify)
+            r = self.session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
 
-            if self.config.auth:
-                r = self.session.post(r.url, timeout=self.config.timeout, headers=self.config.header, data=self.config.payload, verify=True)
+            if config.auth:
+                r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
 
             r.encoding = detect_encoding(r)
-            self.history = history_handler(history=self.history, url=self.config.target_url, current_url=r.url, status_code=r.status_code, link_name=self.config.title, link_url=self.config.target_url, admin_email=self.config.email, admin_unit=self.config.unit, reason=r.reason, depth=0)
+            self.history = history_handler(history=self.history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=0)
         except requests.exceptions.HTTPError as e:
-            if retries < self.max_retries:
-                response = self.authenticate(retries=retries+1)
-                return response
-            else:
-                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-2, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
-                r = None
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            r = None
         except requests.exceptions.Timeout as e:
-            if retries < self.max_retries:
-                response = self.authenticate(retries=retries+1)
-                return response
-            else:
-                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-3, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
-                r = None
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            r = None
         except requests.exceptions.TooManyRedirects as e:
-            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-4, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
         except requests.exceptions.ConnectionError as e:
-            if retries < self.max_retries:
-                response = self.authenticate(retries=retries+1)
-                return response
-            else:
-                self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-5, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
-                r = None
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            r = None
         except requests.exceptions.InvalidSchema as e:
-            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-6, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
         except Exception as e:
-            self.history = history_handler(history=self.history, url=self.config.target_url, status_code=-7, link_name=self.config.title, admin_email=self.config.email, link_url=self.config.target_url, admin_unit=self.config.unit, reason=e, depth=0)
+            self.history = history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
         finally:
+            if self.history[config.target_url]["status_code"] in config.broken_link:
+                if retries < config.max_retries:
+                    response = self.authenticate(retries=retries+1)
+                    return response
             end_time = datetime.datetime.now()
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-            self.history[self.config.target_url]["time_cost"] = time_cost
+            self.history[config.target_url]["time_cost"] = time_cost
 
             return r
 
@@ -117,63 +109,48 @@ class Authenticate():
 Thread class
 """
 class HTTPRequest(threading.Thread):
-    def __init__(self, thread_id, thread_name, event, session, driver_location, verify, follow_redirection, q_in, q_out):
+    def __init__(self, thread_id, thread_name, event, session, config, q_in, q_out):
         threading.Thread.__init__(self)
         self.event = event
         self.session = session
-        self.driver_location = driver_location
-        self.verify = verify
-        self.follow_redirection = follow_redirection
+        self.config = config
         self.thread_id = thread_id
         self.thread_name = thread_name
         self.q_in = q_in
         self.q_out = q_out
-        self.max_retries = 5
 
     def send_head_request(self, session, request):
         return True
 
-    def send_get_request(self, session, driver_location, request, retries=0, follow_redirection=False, verify=False):
+    def send_get_request(self, session, config, request, retries=0):
         current_url = ""
         r = None
 
         try:
             start_time = datetime.datetime.now()
-            url = run_webdriver(request["url"], request["timeout"], driver_location, follow_redirection, verify=verify)
-            r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=verify)
+            url = run_webdriver(request["url"], request["timeout"], config.driver_location, config.follow_redirection, verify=config.verify)
+            r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=config.verify)
 
             r.encoding = detect_encoding(r)
             status_code = r.status_code
             reason = r.reason
             current_url = str(r.url)
         except requests.exceptions.HTTPError as e:
-            if retries < self.max_retries:
-                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
-                return response
-            else:
-                status_code = -2
-                reason = e
-                r = None
+            status_code = -2
+            reason = e
+            r = None
         except requests.exceptions.Timeout as e:
-            if retries < self.max_retries:
-                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
-                return response
-            else:
-                status_code = -3
-                reason = e
-                r = None
+            status_code = -3
+            reason = e
+            r = None
         except requests.exceptions.TooManyRedirects as e:
             status_code = -4
             reason = e
             r = None
         except requests.exceptions.ConnectionError as e:
-            if retries < self.max_retries:
-                response = self.send_get_request(session=session, request=request, retries=retries+1, follow_redirection=follow_redirection, verify=verify)
-                return response
-            else:
-                status_code = -5
-                reason = e
-                r = None
+            status_code = -5
+            reason = e
+            r = None
         except requests.exceptions.InvalidSchema as e:
             status_code = -6
             reason = e
@@ -183,6 +160,10 @@ class HTTPRequest(threading.Thread):
             reason = e
             r = None
         finally:
+            if status_code in config.broken_link:
+                if retries < config.max_retries:
+                    response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
+                    return response
             end_time = datetime.datetime.now()
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
@@ -197,7 +178,7 @@ class HTTPRequest(threading.Thread):
             if self.send_head_request(session=self.session, request=request):
                 if "counter" in request and "total" in request:
                     sys.stderr.write(str(request["counter"])+"/"+str(request["total"])+"\r")
-                response = self.send_get_request(session=self.session, driver_location=self.driver_location, request=request, follow_redirection=self.follow_redirection, verify=self.verify)
+                response = self.send_get_request(session=self.session, config=self.config, request=request)
                 self.q_out.put(response)
             self.q_in.task_done()
 
@@ -248,6 +229,7 @@ class Config():
         _domain_url = self.load(conf, self.tag, "DOMAIN_URL", pattern_generator)
         _filter_code = self.load(conf, self.tag, "FILTER")
         _broken_link = self.load(conf, self.tag, "BROKEN_LINK")
+        _max_retries = self.load(conf, self.tag, "MAX_RETRIES", int)
         _output_format = self.load(conf, self.tag, "FORMAT")
         _sort = self.load(conf, self.tag, "SORT")
         _follow_redirection = self.load(conf, self.tag, "FOLLOW_REDIRECTION")
@@ -278,6 +260,7 @@ class Config():
         self.domain_url = _domain_url
         self.filter_code = [int(i) for i in _filter_code.split(",")]
         self.broken_link = [int(i) for i in _broken_link.split(",")]
+        self.max_retries = _max_retries
         self.output_format = [str(i) for i in _output_format.split(",")]
         self.sort = _sort
         if _follow_redirection == "YES":
@@ -326,7 +309,7 @@ def initialize(config, decode=None):
         for i in range(0, num_of_worker_threads, 1):
             new_session = copy.deepcopy(session)
             sessions.append(new_session)
-            thread = HTTPRequest(i, str(i), event, new_session, config.driver_location, config.verify, config.follow_redirection, history_in_queue, history_out_queue)
+            thread = HTTPRequest(i, str(i), event, new_session, config, history_in_queue, history_out_queue)
             thread.start()
             threads.append(thread)
 
