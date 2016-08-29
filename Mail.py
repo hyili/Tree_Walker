@@ -18,7 +18,7 @@ Argument init
 """
 def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to send email.")
-    parser.add_argument("--tag", help="Specify tag in the conf.", required=True)
+    parser.add_argument("--tag", help="Specify tag in the config.", required=True)
     parser.add_argument("--offset", type=int, help="Specify timing offset.")
     parser.add_argument("--threshold", type=int, help="Specify the threshold of sending the email.")
     parser.add_argument("--sender", default="", help="Specify sender email address.")
@@ -77,12 +77,12 @@ def main():
     subject = args.subject
     content = args.content
 
-    conf = Request.Config(filename=".requests.conf", tag=tag)
-    conf.load_config()
+    config = Request.Config(filename=".requests.conf", tag=tag)
+    config.load_config()
     if sender == "":
-        sender = conf.user+"@itri.org.tw"
-    username = conf.user
-    password = conf.password
+        sender = config.user+"@itri.org.tw"
+    username = config.user
+    password = config.password
 
     filenames = args.files
 

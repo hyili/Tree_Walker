@@ -51,11 +51,11 @@ def arg_initialize(argv):
 """
 Parse function
 """
-def parse_funct(filename, conf, logger):
-    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
-    if conf.depth > 0:
-        history.update(Request.navigate(linktexts=linktexts, history=history, config=conf, decode="utf-8"))
-    Request.file_generator(history=history, config=conf, logger=logger, output_filename=filename)
+def parse_funct(filename, config, logger):
+    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
+    if config.depth > 0:
+        history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8"))
+    Request.file_generator(history=history, config=config, logger=logger, output_filename=filename)
     Request.close()
     quit()
 
@@ -65,31 +65,31 @@ Round function
 def round_funct(args, logger):
     if args.subparser_name == "config":
         for tag in args.tags[0:]:
-            conf = Request.Config(filename=".requests.conf", tag=tag)
-            conf.load_config()
-            parse_funct(tag, conf, logger)
+            config = Request.Config(filename=".requests.conf", tag=tag)
+            config.load_config()
+            parse_funct(tag, config, logger)
     elif args.subparser_name == "commandline":
         filename = args.filename
-        conf = Request.Config(filename=".requests.conf", tag=args.tag)
-        conf.load_config()
+        config = Request.Config(filename=".requests.conf", tag=args.tag)
+        config.load_config()
 
         if args.auth is not None:
-            conf.auth = args.auth
+            config.auth = args.auth
         if args.verify is not None:
-            conf.verify = args.verify
+            config.verify = args.verify
         if args.redirect is not None:
-            conf.follow_redirection = args.redirect
-        conf.title = args.title
-        conf.email = args.email
-        conf.unit = args.unit
-        conf.target_url = Request.factor_url(args.url, "")
-        conf.current_url = Request.factor_url(args.url, "")
-        conf.domain_url = Request.pattern_generator(args.url)
+            config.follow_redirection = args.redirect
+        config.title = args.title
+        config.email = args.email
+        config.unit = args.unit
+        config.target_url = Request.factor_url(args.url, "")
+        config.current_url = Request.factor_url(args.url, "")
+        config.domain_url = Request.pattern_generator(args.url)
 
         if args.depth >= 0:
-            conf.depth = args.depth
+            config.depth = args.depth
 
-        parse_funct(filename, conf, logger)
+        parse_funct(filename, config, logger)
 
 """
 """

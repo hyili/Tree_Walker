@@ -193,15 +193,15 @@ class Config():
         self.email = ""
         self.unit = ""
 
-    def load(self, conf, tag, option, funct=None):
+    def load(self, config, tag, option, funct=None):
         try:
-            result = conf.get(tag, option)
+            result = config.get(tag, option)
         except configparser.NoSectionError as e:
             print(e)
             quit()
         except:
             try:
-                result = conf.get("DEFAULT", option)
+                result = config.get("DEFAULT", option)
             except:
                 quit()
 
@@ -211,30 +211,30 @@ class Config():
             return funct(result)
 
     def load_config(self):
-        conf = configparser.ConfigParser()
-        conf.read(self.filename)
-        conf.sections()
+        config = configparser.ConfigParser()
+        config.read(self.filename)
+        config.sections()
 
-        _auth = self.load(conf, self.tag, "AUTH")
-        _multithread = self.load(conf, self.tag, "MULTITHREAD")
-        _threshold = self.load(conf, self.tag, "THRESHOLD", int)
-        _print_depth = self.load(conf, self.tag, "PRINT_DEPTH")
-        _target_url = self.load(conf, self.tag, "TARGET_URL")
+        _auth = self.load(config, self.tag, "AUTH")
+        _multithread = self.load(config, self.tag, "MULTITHREAD")
+        _threshold = self.load(config, self.tag, "THRESHOLD", int)
+        _print_depth = self.load(config, self.tag, "PRINT_DEPTH")
+        _target_url = self.load(config, self.tag, "TARGET_URL")
         _current_url = _target_url
-        _user = self.load(conf, self.tag, "USER")
-        _password = self.load(conf, self.tag, "PASS")
+        _user = self.load(config, self.tag, "USER")
+        _password = self.load(config, self.tag, "PASS")
         _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
-        _depth = self.load(conf, self.tag, "DEPTH", int)
-        _timeout = self.load(conf, self.tag, "TIMEOUT", int)
-        _domain_url = self.load(conf, self.tag, "DOMAIN_URL", pattern_generator)
-        _filter_code = self.load(conf, self.tag, "FILTER")
-        _broken_link = self.load(conf, self.tag, "BROKEN_LINK")
-        _max_retries = self.load(conf, self.tag, "MAX_RETRIES", int)
-        _output_format = self.load(conf, self.tag, "FORMAT")
-        _sort = self.load(conf, self.tag, "SORT")
-        _follow_redirection = self.load(conf, self.tag, "FOLLOW_REDIRECTION")
-        _driver_location = self.load(conf, self.tag, "DRIVER_LOCATION")
-        _verify = self.load(conf, self.tag, "VERIFY_CERTIFICATE")
+        _depth = self.load(config, self.tag, "DEPTH", int)
+        _timeout = self.load(config, self.tag, "TIMEOUT", int)
+        _domain_url = self.load(config, self.tag, "DOMAIN_URL", pattern_generator)
+        _filter_code = self.load(config, self.tag, "FILTER")
+        _broken_link = self.load(config, self.tag, "BROKEN_LINK")
+        _max_retries = self.load(config, self.tag, "MAX_RETRIES", int)
+        _output_format = self.load(config, self.tag, "FORMAT")
+        _sort = self.load(config, self.tag, "SORT")
+        _follow_redirection = self.load(config, self.tag, "FOLLOW_REDIRECTION")
+        _driver_location = self.load(config, self.tag, "DRIVER_LOCATION")
+        _verify = self.load(config, self.tag, "VERIFY_CERTIFICATE")
 
         if _auth == "YES":
             self.auth = True
@@ -480,11 +480,16 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                     except:
                         pass
 
-            if history[sub_url]["status_code"] in config.broken_link:
-                history[config.current_url]["contained_broken_link"] += 1
-
+            # set as option IGNORE
             if history[sub_url]["status_code"] in [-6]:
                 del history[sub_url]
+            else:
+                if history[sub_url]["status_code"] in config.broken_link:
+                    history[config.current_url]["contained_broken_link"] += 1
+
+                if history[sub_url]["status_code"] not in config.filter_code:
+                    total_output_links += 1
+
     else:
         print("Single thread deprecated. Using multithread instead.")
         quit()
@@ -534,9 +539,6 @@ def authenticate(session, config, decode=None):
     response = auth.authenticate()
     history = auth.get_history()
 
-    if history[config.target_url]["status_code"] not in config.filter_code:
-        total_output_links += 1
-
     ret_val = ("", history)
     if history[config.target_url]["status_code"] == 200:
         try:
@@ -545,8 +547,13 @@ def authenticate(session, config, decode=None):
                 ret_val = (response.text, history)
         except:
             pass
-        finally:
-            return ret_val
+
+    # set as option IGNORE
+    if history[config.target_url]["status_code"] in [-6]:
+        del history[config.target_url]
+    else:
+        if history[config.target_url]["status_code"] not in config.filter_code:
+            total_output_links += 1
 
     return ret_val
 

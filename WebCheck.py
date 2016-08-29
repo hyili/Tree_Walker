@@ -4,7 +4,6 @@
 import Request
 import lxml.html
 import time
-import os
 
 def main():
     """
@@ -12,14 +11,14 @@ def main():
     """
     # admins = ["suyihui.900360@itri.org.tw", "JanetChang@itri.org.tw", "hyili@itri.org.tw"]
     admins = ["hyili@itri.org.tw"]
-    conf = Request.Config(filename=".requests.conf", tag="WEBCHECK")
-    conf.load_config()
-    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
-    if history[conf.target_url]["status_code"] == 200:
+    config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
+    config.load_config()
+    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
+    if history[config.target_url]["status_code"] == 200:
         print("OK")
     else:
-        print(history[conf.target_url]["status_code"])
-        print(history[conf.target_url]["reason"])
+        print(history[config.target_url]["status_code"])
+        print(history[config.target_url]["reason"])
         quit()
 
     """
@@ -48,7 +47,7 @@ def main():
             unit = root.get_element_by_id(i)[4].text_content()
             print(unit)
 
-            Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit, "timeout": conf.timeout, "header": conf.header})
+            Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit, "timeout": config.timeout, "header": config.header})
         except KeyError as e:
             print("No such id")
             print(str(e))
@@ -64,7 +63,7 @@ def main():
         receiver = ""
         for admin in admins:
             receiver += admin + ";"
-        Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title="+title+"&mailto="+receiver, "timeout": conf.timeout, "header": conf.header})
+        Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title="+title+"&mailto="+receiver, "timeout": config.timeout, "header": config.header})
     time.sleep(180)
     Request.close()
     quit()
