@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 import ssl
+import ssllab.ssllabsscanner as ssllabscanner
 
 """
 Global variable
@@ -65,6 +66,8 @@ class Authenticate():
         config = self.config
         self.history = history_handler(init=True, url=self.config.target_url)
         r = None
+        ssl_grade = ""
+        ssl_report_url = ""
 
         try:
             start_time = datetime.datetime.now()
@@ -74,8 +77,12 @@ class Authenticate():
             if config.auth:
                 r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
 
+            if config.ssllab_verify:
+                ssl_grade = ssllabscanner.newScan(self.config.target_url)["endpoints"][0]["gradeTrustIgnored"]
+                ssl_report_url = "https://www.ssllabs.com/ssltest/analyze.html?d="+self.config.target_url
+
             r.encoding = detect_encoding(r)
-            self.history = history_handler(history=self.history, url=config.target_url, current_url=r.url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=0)
+            self.history = history_handler(history=self.history, url=config.target_url, current_url=r.url, ssl_grade=ssl_grade, ssl_report_url=ssl_report_url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=0)
         except requests.exceptions.HTTPError as e:
             self.history = history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
@@ -97,6 +104,7 @@ class Authenticate():
         finally:
             if self.history[config.target_url]["status_code"] in config.broken_link:
                 if retries < config.max_retries:
+                    # TODO: time.sleep(random)
                     response = self.authenticate(retries=retries+1)
                     return response
             end_time = datetime.datetime.now()
@@ -162,6 +170,7 @@ class HTTPRequest(threading.Thread):
         finally:
             if status_code in config.broken_link:
                 if retries < config.max_retries:
+                    # TODO: time.sleep(random)
                     response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
                     return response
             end_time = datetime.datetime.now()
@@ -235,6 +244,7 @@ class Config():
         _follow_redirection = self.load(config, self.tag, "FOLLOW_REDIRECTION")
         _driver_location = self.load(config, self.tag, "DRIVER_LOCATION")
         _verify = self.load(config, self.tag, "VERIFY_CERTIFICATE")
+        _ssllab_verify = self.load(config, self.tag, "SSLLAB_VERIFY_CERTIFICATE")
 
         if _auth == "YES":
             self.auth = True
@@ -272,6 +282,10 @@ class Config():
             self.verify = True
         else:
             self.verify = False
+        if _ssllab_verify == "YES":
+            self.ssllab_verify = True
+        else:
+            self.ssllab_verify = False
 
 """
 Ctrl + C handler
@@ -363,7 +377,7 @@ def detect_encoding(r):
 """
 history handler
 """
-def history_handler(init=False, history={}, url="", parent_urls=[], link_url="", link_name="", current_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
+def history_handler(init=False, history={}, url="", parent_urls=[], link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
     if url == "" or history is None:
         print("History update failed.")
         return history
@@ -374,6 +388,8 @@ def history_handler(init=False, history={}, url="", parent_urls=[], link_url="",
         history[url]["link_url"] = link_url
         history[url]["link_name"] = link_name
         history[url]["current_url"] = current_url
+        history[url]["ssl_grade"] = ssl_grade
+        history[url]["ssl_report_url"] = ssl_report_url
         history[url]["status_code"] = status_code
         history[url]["contained_broken_link"] = contained_broken_link
         history[url]["admin_email"] = admin_email
@@ -393,6 +409,10 @@ def history_handler(init=False, history={}, url="", parent_urls=[], link_url="",
             history[url]["link_name"] = link_name
         if current_url != "":
             history[url]["current_url"] = current_url
+        if ssl_grade != "?":
+            history[url]["ssl_grade"] = ssl_grade
+        if ssl_report_url != "":
+            history[url]["ssl_report_url"] = ssl_report_url
         if status_code != -1:
             history[url]["status_code"] = status_code
         if contained_broken_link != 0:
@@ -605,6 +625,10 @@ def file_generator(history, logger, config, output_filename):
                         link_name.set("value", str(history[log]["link_name"]))
                         current_url = etree.SubElement(locate, "current_url")
                         current_url.set("value", str(history[log]["current_url"]))
+                        ssl_grade = etree.SubElement(locate, "ssl_grade")
+                        ssl_grade.set("value", str(history[log]["ssl_grade"]))
+                        ssl_report_url = etree.SubElement(locate, "ssl_report_url")
+                        ssl_report_url.set("value", str(history[log]["ssl_report_url"]))
                         status_code = etree.SubElement(locate, "status_code")
                         status_code.set("value", str(history[log]["status_code"]))
                         contained_broken_link = etree.SubElement(locate, "contained_broken_link")
@@ -647,6 +671,10 @@ def file_generator(history, logger, config, output_filename):
                         link_name.set("value", str(log["link_name"]))
                         current_url = etree.SubElement(locate, "current_url")
                         current_url.set("value", str(log["current_url"]))
+                        ssl_grade = etree.SubElement(locate, "ssl_grade")
+                        ssl_grade.set("value", str(log["ssl_grade"]))
+                        ssl_report_url = etree.SubElement(locate, "ssl_report_url")
+                        ssl_report_url.set("value", str(log["ssl_report_url"]))
                         status_code = etree.SubElement(locate, "status_code")
                         status_code.set("value", str(log["status_code"]))
                         contained_broken_link = etree.SubElement(locate, "contained_broken_link")
@@ -675,7 +703,7 @@ def file_generator(history, logger, config, output_filename):
         if config.sort == "URL":
             with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
-                fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
+                fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 if not file_exist:
@@ -685,7 +713,7 @@ def file_generator(history, logger, config, output_filename):
                         continue
                     if history[log]["status_code"] not in config.filter_code or history[log]["contained_broken_link"] != 0:
                         try:
-                            writer.writerow({"日期時間": date_time, "從何而來": str(history[log]["parent_url"]), "連結網址": str(history[log]["link_url"]), "連結名稱": str(history[log]["link_name"]), "當前網址": str(history[log]["current_url"]), "狀態碼": str(history[log]["status_code"]), "第一層失連數": str(history[log]["contained_broken_link"]), "負責人email": str(history[log]["admin_email"]), "負責人單位": str(history[log]["admin_unit"]), "花費時間": str(history[log]["time_cost"]), "原因": str(history[log]["reason"])})
+                            writer.writerow({"日期時間": date_time, "從何而來": str(history[log]["parent_url"]), "連結網址": str(history[log]["link_url"]), "連結名稱": str(history[log]["link_name"]), "當前網址": str(history[log]["current_url"]), "Certificate等級": str(history[log]["ssl_grade"]), "Certificate報告": str(history[log]["ssl_report_url"]), "狀態碼": str(history[log]["status_code"]), "第一層失連數": str(history[log]["contained_broken_link"]), "負責人email": str(history[log]["admin_email"]), "負責人單位": str(history[log]["admin_unit"]), "花費時間": str(history[log]["time_cost"]), "原因": str(history[log]["reason"])})
                         except Exception as e:
                             print(e)
                             continue
@@ -696,7 +724,7 @@ def file_generator(history, logger, config, output_filename):
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
             with open(directory+output_filename+".csv", "a") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
-                fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
+                fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
                 if not file_exist:
@@ -706,7 +734,7 @@ def file_generator(history, logger, config, output_filename):
                         continue
                     if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
                         try:
-                            writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
+                            writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "Certificate等級":str(log["ssl_grade"]), "Certificate報告": str(log["ssl_report_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
                         except Exception as e:
                             print(e)
                             continue

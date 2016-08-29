@@ -118,7 +118,7 @@ BROKEN_LINK=400,401,403,404,500,503,-3,-5
 # How many times to retry, when a broken link candidate shows up			              #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-MAX_RETRIES=3
+MAX_RETRIES=5
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
@@ -164,7 +164,8 @@ DRIVER_LOCATION=/usr/local/bin/phantomjs
 # verify sites' certificate                                                               #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-VERIFY_CERTIFICATE=YES
+VERIFY_CERTIFICATE=NO
+SSLLAB_VERIFY_CERTIFICATE=YES
 
 
 
@@ -187,6 +188,7 @@ PASS=password
 AUTH=NO
 FOLLOW_REDIRECTION=YES
 VERIFY_CERTIFICATE=NO
+SSLLAB_VERIFY_CERTIFICATE=NO
 DEPTH=0
 TIMEOUT=20
 PRINT_DEPTH=0
@@ -197,6 +199,8 @@ FORMAT=CSV,STDOUT
 [WEBCHECK]
 USER=username
 PASS=password
+VERIFY_CERTIFICATE=NO
+SSLLAB_VERIFY_CERTIFICATE=NO
 DEPTH=0
 TIMEOUT=20
 FILTER=0

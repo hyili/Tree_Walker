@@ -9,7 +9,6 @@ def main():
     """
     web source
     """
-    # admins = ["suyihui.900360@itri.org.tw", "JanetChang@itri.org.tw", "hyili@itri.org.tw"]
     admins = ["hyili@itri.org.tw"]
     config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     config.load_config()
@@ -36,11 +35,9 @@ def main():
             print(title)
             url = root.get_element_by_id(i)[1].text_content()
             print(url)
-            # mailto = root.get_element_by_id(i)[2].text_content()+";"
-            mailto = "hyili@itri.org.tw;"
+            mailto = root.get_element_by_id(i)[2].text_content()+";"
             print(mailto)
-            # mailcc = root.get_element_by_id(i)[3].text_content()+";"
-            mailcc = "hyili@itri.org.tw;"
+            mailcc = root.get_element_by_id(i)[3].text_content()+";"
             for admin in admins:
                 mailcc += admin + ";"
             print(mailcc)
