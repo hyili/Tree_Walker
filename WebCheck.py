@@ -9,6 +9,7 @@ def main():
     """
     web source
     """
+    # TODO: set option
     admins = ["hyili@itri.org.tw"]
     config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
     config.load_config()
@@ -55,13 +56,13 @@ def main():
 
         i += 1
 
-    time.sleep(180)
     if i != 1:
         receiver = ""
         for admin in admins:
             receiver += admin + ";"
+        print("Send Report.")
         Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title="+title+"&mailto="+receiver, "timeout": config.timeout, "header": config.header})
-    time.sleep(180)
+    time.sleep(20)
     Request.close()
     quit()
 

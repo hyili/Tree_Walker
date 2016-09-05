@@ -17,21 +17,37 @@ import argparse
 app = Flask(__name__)
 
 class HTTPRequestHandler(threading.Thread):
-    def __init__(self, thread_id, thread_name, event, request_queue, config, seperate, send_mail):
+    def __init__(self, thread_id, thread_name, threads, event, send_report_event, request_queue, config, seperate, send_mail):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
+        self.threads = threads
+        # 0: is idling, 1: is running, 2: is reporting
+        self.status = 0
         self.event = event
+        self.send_report_event = send_report_event
         self.request_queue = request_queue
         self.config = config
         self.seperate = seperate
         self.send_mail = send_mail
 
-    def handler(self, request, config, seperate, send_mail):
+    def thread_status(self):
+        return self.status
+
+    def handler(self, request, config, threads, seperate, send_mail):
         global logger
 
         if request["send_report"]:
-            os.system("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
+            for thread in threads:
+                while thread.thread_status() == 1:
+                    # TODO: time.sleep(random)
+                    pass
+
+            if send_mail:
+                os.system("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
+            else:
+                print("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
+
             return
 
         if seperate:
@@ -64,7 +80,25 @@ class HTTPRequestHandler(threading.Thread):
             request = self.request_queue.get()
             if request is None:
                 break
-            self.handler(request, self.config, self.seperate, self.send_mail)
+
+            if request["send_report"]:
+                self.send_report_event.set()
+                self.status = 2
+
+                self.handler(request, self.config, self.threads, self.seperate, self.send_mail)
+
+                self.status = 0
+                self.send_report_event.clear()
+            else:
+                while self.send_report_event.is_set():
+                    # TODO: time.sleep(random)
+                    pass
+
+                self.status = 1
+
+                self.handler(request, self.config, self.threads, self.seperate, self.send_mail)
+
+                self.status = 0
 
 """
 Ctrl + C handler
@@ -142,12 +176,13 @@ def initialize(args):
     request_queue = queue.Queue()
     threads = []
     event = threading.Event()
+    send_report_event = threading.Event()
     num_of_worker_threads = args.threads
     counter = 0
     conf = Request.Config(filename=".requests.conf", tag="APISERVER")
     conf.load_config()
     for i in range(0, num_of_worker_threads, 1):
-        thread = HTTPRequestHandler(i, str(i), event, request_queue, conf, args.seperate, args.send_mail)
+        thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate, args.send_mail)
         thread.start()
         threads.append(thread)
 

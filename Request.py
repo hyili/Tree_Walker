@@ -18,6 +18,7 @@ import csv
 import threading
 import queue
 import copy
+import time
 from selenium import webdriver
 from bs4 import BeautifulSoup
 
@@ -66,7 +67,7 @@ class Authenticate():
         config = self.config
         self.history = history_handler(init=True, url=self.config.target_url)
         r = None
-        ssl_grade = ""
+        ssl_grade = "?"
         ssl_report_url = ""
 
         try:
@@ -103,10 +104,13 @@ class Authenticate():
             r = None
         finally:
             if self.history[config.target_url]["status_code"] in config.broken_link:
+                # TODO: single node network problem solution
+                if self.history[config.target_url]["status_code"] in [-3, -5]:
+                    time.sleep(360)
                 if retries < config.max_retries:
-                    # TODO: time.sleep(random)
                     response = self.authenticate(retries=retries+1)
                     return response
+
             end_time = datetime.datetime.now()
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
             self.history[config.target_url]["time_cost"] = time_cost
@@ -169,10 +173,13 @@ class HTTPRequest(threading.Thread):
             r = None
         finally:
             if status_code in config.broken_link:
+                # TODO: single node network problem solution
+                if self.history[config.target_url]["status_code"] in [-3, -5]:
+                    time.sleep(360)
                 if retries < config.max_retries:
-                    # TODO: time.sleep(random)
                     response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
                     return response
+
             end_time = datetime.datetime.now()
             time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
