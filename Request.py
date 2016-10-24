@@ -652,7 +652,7 @@ def file_generator(history, logger, config, output_filename):
                         print(e)
                         continue
             tree = etree.ElementTree(time)
-            with open(directory+output_filename+".xml", "ab") as xmlfile:
+            with open(directory+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
                 xmlfile.close()
         elif config.sort == "STATUS_CODE":
@@ -698,7 +698,7 @@ def file_generator(history, logger, config, output_filename):
                         print(e)
                         continue
             tree = etree.ElementTree(time)
-            with open(directory+output_filename+".xml", "ab") as xmlfile:
+            with open(directory+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
                 tree.write(xmlfile, pretty_print=True)
                 xmlfile.close()
 
@@ -708,7 +708,7 @@ def file_generator(history, logger, config, output_filename):
             file_exist = True
 
         if config.sort == "URL":
-            with open(directory+output_filename+".csv", "a") as csvfile:
+            with open(directory+output_filename+".csv", "a", encoding="utf-8-sig") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -729,7 +729,7 @@ def file_generator(history, logger, config, output_filename):
                 csvfile.close()
         elif config.sort == "STATUS_CODE":
             sort_by_status = sorted(iter(history.values()), key=lambda x : x["status_code"])
-            with open(directory+output_filename+".csv", "a") as csvfile:
+            with open(directory+output_filename+".csv", "a", encoding="utf-8-sig") as csvfile:
                 date_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
                 fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "共印出幾條網址", "共掃過幾條網址"]
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -741,7 +741,7 @@ def file_generator(history, logger, config, output_filename):
                         continue
                     if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
                         try:
-                            writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "Certificate等級":str(log["ssl_grade"]), "Certificate報告": str(log["ssl_report_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
+                            writer.writerow({"日期時間": date_time, "從何而來": str(log["parent_url"]), "連結網址": str(log["link_url"]), "連結名稱": str(log["link_name"]), "當前網址": str(log["current_url"]), "Certificate等級": str(log["ssl_grade"]), "Certificate報告": str(log["ssl_report_url"]), "狀態碼": str(log["status_code"]), "第一層失連數": str(log["contained_broken_link"]), "負責人email": str(log["admin_email"]), "負責人單位": str(log["admin_unit"]), "花費時間": str(log["time_cost"]), "原因": str(log["reason"])})
                         except Exception as e:
                             print(e)
                             continue
