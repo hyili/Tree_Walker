@@ -79,7 +79,7 @@ class HTTPRequestHandler(threading.Thread):
             print("No output. ("+str(record)+")")
             logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" no sent OK")
 
-        os.close(_record)
+        _record.close()
 
     def run(self):
         while not self.event.is_set():
