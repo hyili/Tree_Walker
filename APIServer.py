@@ -53,9 +53,11 @@ class HTTPRequestHandler(threading.Thread):
             return
 
         if seperate:
-            record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"").read().replace("\n", "")
+            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"")
+            record = _record.read().replace("\n", "")
         else:
-            record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"").read().replace("\n", "")
+            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"")
+            record = _record.read().replace("\n", "")
 
         try:
             record = int(record)
@@ -76,6 +78,8 @@ class HTTPRequestHandler(threading.Thread):
             print(str(request["counter"])+" "+request["title"])
             print("No output. ("+str(record)+")")
             logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" no sent OK")
+
+        os.close(_record)
 
     def run(self):
         while not self.event.is_set():
