@@ -452,13 +452,14 @@ def run_webdriver(url, timeout, driver_location="/usr/local/bin/phantomjs", foll
     wd.set_script_timeout(timeout)
     try:
         wd.get(url)
+        time.sleep(timeout)
         result = wd.current_url
         if wd.current_url == "about:blank":
             result = url
     except:
         result = url
     finally:
-        wd.close()
+        wd.quit()
         return result
 
 """

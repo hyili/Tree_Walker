@@ -13,6 +13,7 @@ import queue
 import signal
 import sys
 import argparse
+import time
 
 app = Flask(__name__)
 
@@ -40,7 +41,8 @@ class HTTPRequestHandler(threading.Thread):
         if request["send_report"]:
             for thread in threads:
                 while thread.thread_status() == 1:
-                    # TODO: time.sleep(random)
+                    # TODO:
+                    time.sleep(self.config.timeout)
                     pass
 
             if send_mail:
@@ -91,7 +93,8 @@ class HTTPRequestHandler(threading.Thread):
                 self.send_report_event.clear()
             else:
                 while self.send_report_event.is_set():
-                    # TODO: time.sleep(random)
+                    # TODO:
+                    time.sleep(self.config.timeout)
                     pass
 
                 self.status = 1

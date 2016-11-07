@@ -6,29 +6,29 @@ import lxml.html
 import time
 
 def main():
-    """
-    web source
-    """
-    # TODO: set option
-    admins = ["hyili@itri.org.tw"]
-    config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
-    config.load_config()
-    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
-    if history[config.target_url]["status_code"] == 200:
-        print("OK")
-    else:
-        print(history[config.target_url]["status_code"])
-        print(history[config.target_url]["reason"])
-        quit()
-
-    """
-    test: file source
-    """
-#    source_file = open("./hello.html", 'r', encoding='utf-8')
-#    source = source_file.read()
-#    source_file.close()
-
     while(True):
+        """
+        web source
+        """
+        # TODO: set option
+        admins = ["hyili@itri.org.tw"]
+        config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
+        config.load_config()
+        (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
+        if history[config.target_url]["status_code"] == 200:
+            print("OK")
+        else:
+            print(history[config.target_url]["status_code"])
+            print(history[config.target_url]["reason"])
+            quit()
+
+        """
+        test: file source
+        """
+#       source_file = open("./hello.html", 'r', encoding='utf-8')
+#       source = source_file.read()
+#       source_file.close()
+
         i = 1
         root = lxml.html.fromstring(source)
         while(True):
