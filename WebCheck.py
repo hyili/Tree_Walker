@@ -62,7 +62,7 @@ def main():
             for admin in admins:
                 receiver += admin + ";"
             print("Send Report.")
-            Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title="+title+"&mailto="+receiver, "timeout": config.timeout, "header": config.header})
+            Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title=Send_Report&mailto="+receiver, "timeout": config.timeout, "header": config.header})
             time.sleep(20)
             Request.close()
             quit()
