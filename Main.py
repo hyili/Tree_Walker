@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 
 import sys
 import Request
@@ -52,9 +52,9 @@ def arg_initialize(argv):
 Parse function
 """
 def parse_funct(filename, config, logger):
-    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
+    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
     if config.depth > 0:
-        history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8"))
+        history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
     Request.file_generator(history=history, config=config, logger=logger, output_filename=filename)
     Request.close()
     quit()

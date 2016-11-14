@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 
 import Request
 
@@ -13,7 +13,7 @@ def main(url):
     conf.domain_url = ""
     conf.depth = 0
 
-    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8")
+    (session, history, source, linktexts) = Request.initialize(config=conf, decode="utf-8-sig")
     status_code = history[conf.target_url]["status_code"]
     Request.close()
 

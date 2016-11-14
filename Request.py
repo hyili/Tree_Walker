@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 Note: Need to set timeout when parsing the website
 """
@@ -174,7 +174,7 @@ class HTTPRequest(threading.Thread):
         finally:
             if status_code in config.broken_link:
                 # TODO: single node network problem solution
-                if self.history[config.target_url]["status_code"] in [-3, -5]:
+                if status_code in [-3, -5]:
                     time.sleep(360)
                 if retries < config.max_retries:
                     response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
@@ -359,7 +359,7 @@ def detect_encoding(r):
     header = None
 
     try:
-        contentsoup = BeautifulSoup(r.content.decode("utf-8", "ignore"), "lxml")
+        contentsoup = BeautifulSoup(r.content.decode("utf-8-sig", "ignore"), "lxml")
         pattern = re.compile("charset=([0-9A-Za-z\-]+)")
 
         metatag = contentsoup.select("meta[charset]")

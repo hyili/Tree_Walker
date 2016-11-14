@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 
 import Request
 import lxml.html
@@ -14,7 +14,7 @@ def main():
         admins = ["hyili@itri.org.tw"]
         config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
         config.load_config()
-        (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8")
+        (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
         if history[config.target_url]["status_code"] == 200:
             print("OK")
         else:
@@ -25,7 +25,7 @@ def main():
         """
         test: file source
         """
-#       source_file = open("./hello.html", 'r', encoding='utf-8')
+#       source_file = open("./hello.html", 'r', encoding='utf-8-sig')
 #       source = source_file.read()
 #       source_file.close()
 
