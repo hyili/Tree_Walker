@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8-sig -*-
 
-import Request
 import lxml.html
 import time
+
+import context
+from src import Request
+from src import ConfigLoader
+
 
 def main():
     while(True):
@@ -12,7 +16,7 @@ def main():
         """
         # TODO: set option
         admins = ["hyili@itri.org.tw"]
-        config = Request.Config(filename=".requests.conf", tag="WEBCHECK")
+        config = ConfigLoader.Config(filename="../sample/config/.requests.conf", tag="WEBCHECK")
         config.load_config()
         (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
         if history[config.target_url]["status_code"] == 200:

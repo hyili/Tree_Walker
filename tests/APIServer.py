@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8-sig -*-
 
-import Request
-from flask import Flask, url_for
-from flask import request
+
 import re
 import os
-import logging
-import threading
-import datetime
+import sys
+import time
 import queue
 import signal
-import sys
+import logging
 import argparse
-import time
+import datetime
+import threading
+
+from flask import Flask, url_for
+from flask import request
+
+import context
+from src import Request
+from src import ConfigLoader
 
 app = Flask(__name__)
 
@@ -61,14 +66,14 @@ class HTTPRequestHandler(threading.Thread):
 
         try:
             record = int(record)
-        except:
+        except Exception as e:
+            # print(e)
             pass
 
         if record in config.broken_link:
             print(str(request["counter"])+" "+request["title"])
             print("Output. ("+str(record)+")")
             error_msg = error_code_description(record)
-            # temp
             if send_mail:
                 os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
             else:
@@ -113,12 +118,14 @@ Ctrl + C handler
 def signal_handler(signal, frame):
     global threads, event, num_of_worker_threads, request_queue
 
+    print("Got it!")
     for i in range(0, num_of_worker_threads, 1):
         request_queue.put(None)
     event.set()
     for thread in threads:
         thread.join()
 
+    print("Ready to quit!")
     quit()
 
 """
@@ -162,10 +169,9 @@ def arg_initialize(argv):
 Logger init
 """
 def log_initialize(logname):
-    directory = "logs/"
     logger = logging.getLogger("apiserver")
     logger.setLevel(logging.WARNING)
-    file_handler = logging.FileHandler(directory+logname)
+    file_handler = logging.FileHandler(logname)
     file_handler.setLevel(logging.WARNING)
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
@@ -186,7 +192,7 @@ def initialize(args):
     send_report_event = threading.Event()
     num_of_worker_threads = args.threads
     counter = 0
-    conf = Request.Config(filename=".requests.conf", tag="APISERVER")
+    conf = ConfigLoader.Config(filename="../sample/config/.requests.conf", tag="APISERVER")
     conf.load_config()
     for i in range(0, num_of_worker_threads, 1):
         thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate, args.send_mail)

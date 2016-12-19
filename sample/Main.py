@@ -2,19 +2,23 @@
 # -*- coding: utf-8-sig -*-
 
 import sys
-import Request
 import logging
 import argparse
+
+from src import Request
+from src import Output
+from src import ConfigLoader
+from src.tool import Functions
 
 """
 Logger init
 """
-def log_initialize(logname):
-    directory = "logs/"
+def log_initialize(logpath):
     logger = logging.getLogger("main")
     logger.setLevel(logging.WARNING)
-    file_handler = logging.FileHandler(directory+logname)
+    file_handler = logging.FileHandler(logpath+"/main.log")
     file_handler.setLevel(logging.WARNING)
+    # TODO: adjust logger
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -30,7 +34,7 @@ def arg_initialize(argv):
     config_subparser = subparsers.add_parser("config", help="Running specified config tag.")
     config_subparser.add_argument("tags", nargs="*", help="Specify tags in conf.")
     commandline_subparser = subparsers.add_parser("commandline", help="Running specified commandline option.")
-    commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.", required=True)
+    commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.")
     commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
     auth_group = commandline_subparser.add_mutually_exclusive_group()
@@ -42,7 +46,7 @@ def arg_initialize(argv):
     redirect_group = commandline_subparser.add_mutually_exclusive_group()
     redirect_group.add_argument("--redirect", default=None, dest="redirect", action="store_true")
     redirect_group.add_argument("--no-redirect", default=None, dest="redirect", action="store_false")
-    commandline_subparser.add_argument("--filename", help="Specify output filename.", required=True)
+    commandline_subparser.add_argument("--filename", default="commandline", help="Specify output filename.")
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
     commandline_subparser.add_argument("--unit", default="", help="Specify parsing admin unit.")
@@ -55,22 +59,22 @@ def parse_funct(filename, config, logger):
     (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
     if config.depth > 0:
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
-    Request.file_generator(history=history, config=config, logger=logger, output_filename=filename)
+    Output.file_generator(history=history, config=config, logger=logger, output_filename=filename)
     Request.close()
-    quit()
 
 """
 Round function
 """
-def round_funct(args, logger):
+def round_funct(args):
     if args.subparser_name == "config":
         for tag in args.tags[0:]:
-            config = Request.Config(filename=".requests.conf", tag=tag)
+            config = ConfigLoader.Config(filename="config/.requests.conf", tag=tag)
             config.load_config()
+            logger = log_initialize(config.logpath)
             parse_funct(tag, config, logger)
     elif args.subparser_name == "commandline":
         filename = args.filename
-        config = Request.Config(filename=".requests.conf", tag=args.tag)
+        config = ConfigLoader.Config(filename="config/.requests.conf", tag=args.tag)
         config.load_config()
 
         if args.auth is not None:
@@ -82,27 +86,26 @@ def round_funct(args, logger):
         config.title = args.title
         config.email = args.email
         config.unit = args.unit
-        config.target_url = Request.factor_url(args.url, "")
-        config.current_url = Request.factor_url(args.url, "")
-        config.domain_url = Request.pattern_generator(args.url)
+        config.target_url = Functions.factor_url(args.url, "")
+        config.current_url = Functions.factor_url(args.url, "")
+        config.domain_url = Functions.pattern_generator(args.url)
 
         if args.depth >= 0:
             config.depth = args.depth
 
+        logger = log_initialize(config.logpath)
         parse_funct(filename, config, logger)
 
 """
 """
 def main():
     argv = sys.argv
-
-    logger = log_initialize("main.log")
     args = arg_initialize(argv)
-
-    round_funct(args, logger)
+    round_funct(args)
 
 """
 Main function
 """
 if __name__ == "__main__":
     main()
+    quit()

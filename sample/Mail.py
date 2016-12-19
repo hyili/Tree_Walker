@@ -3,14 +3,14 @@
 
 import os
 import sys
-import datetime
 import smtplib
+import argparse
+import datetime
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-import Request
-import argparse
+from src import ConfigLoader
 
 
 """
@@ -77,7 +77,7 @@ def main():
     subject = args.subject
     content = args.content
 
-    config = Request.Config(filename=".requests.conf", tag=tag)
+    config = ConfigLoader.Config(filename="config/.requests.conf", tag=tag)
     config.load_config()
     if sender == "":
         sender = config.user+"@itri.org.tw"
@@ -91,7 +91,8 @@ def main():
         index = datetime.datetime.now()-datetime.timedelta(hours=offset)
 
         count = 0
-        log = os.popen("cat logs/main.log")
+        # TODO: log file format, and send mail problem
+        log = os.popen("cat "+config.logpath+"/main.log")
         for line in log:
             part1 = line.split(" ")
             if part1[7] != "["+tag+"]":

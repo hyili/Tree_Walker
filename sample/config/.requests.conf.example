@@ -73,7 +73,7 @@ THRESHOLD=1
 # To enable/disable login authentication for ITRI SSO                                     #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-AUTH=YES
+AUTH=NO
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
@@ -97,16 +97,34 @@ DOMAIN_URL=https://itriweb.itri.org.tw
 #                                                                                         #
 # FILTER={one,two,three...}                                                               #
 #                                                                                         #
-# Describe the status code that does not want to output to output files                   #
+# Using this option to specify which result is no need to output to output file           #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 FILTER=200,403
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
+# IGNORE={one,two,three...}                                                               #
+#                                                                                         #
+# Using this option to specify which result is no need to handle it                       #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+IGNORE=-6
+
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
+# RETRY={one,two,three...}                                                                #
+#                                                                                         #
+# Using this option to specify which result need to perform a retry                       #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+RETRY=-3,-5
+
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
 # BROKEN_LINK={one,two,three...}                                                          #
 #                                                                                         #
-# Describe the status code that was regarded as broken link			                      #
+# Describe the status code that was regarded as broken link                               #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 BROKEN_LINK=400,401,403,404,500,503,-3,-5
@@ -115,7 +133,7 @@ BROKEN_LINK=400,401,403,404,500,503,-3,-5
 #                                                                                         #
 # MAX_RETRIES={number}                                                                    #
 #                                                                                         #
-# How many times to retry, when a broken link candidate shows up			              #
+# How many times to retry, when a broken link candidate shows up                          #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 MAX_RETRIES=5
@@ -152,7 +170,7 @@ FOLLOW_REDIRECTION=NO
 #                                                                                         #
 # DRIVER_LOCATION={path to phantomjs}                                                     #
 #                                                                                         #
-# Specify the location of webdriver														  #
+# Specify the location of webdriver                                                       #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 DRIVER_LOCATION=/usr/local/bin/phantomjs
@@ -161,11 +179,30 @@ DRIVER_LOCATION=/usr/local/bin/phantomjs
 #                                                                                         #
 # VERIFY_CERTIFICATE=YES|NO                                                               #
 #                                                                                         #
-# verify sites' certificate                                                               #
+# Verify sites' certificate                                                               #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 VERIFY_CERTIFICATE=NO
-SSLLAB_VERIFY_CERTIFICATE=YES
+SSLLAB_VERIFY_CERTIFICATE=NO
+
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
+# LOGPATH={path to store log file}                                                        #
+#                                                                                         #
+# Specify where to store the log file                                                     #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+LOGPATH=logs/
+
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
+# OUTPUTPATH={path to store output file}                                                  #
+#                                                                                         #
+# Specify where to store the output file                                                  #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+OUTPUTPATH=output/
+
 
 
 
@@ -177,7 +214,7 @@ SSLLAB_VERIFY_CERTIFICATE=YES
 [COMMANDLINE]
 USER=username
 PASS=password
-DEPTH=1
+DEPTH=0
 FILTER=0
 FORMAT=CSV
 
