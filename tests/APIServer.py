@@ -206,7 +206,7 @@ def initialize(args):
 
 @app.route("/")
 def api_root():
-    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&mailto=&mailcc=&unit=&level=&empno=<br>unit, mailto, mailcc, level, and empno are not options."
+    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&mailto=&mailcc=&unit=&level=&empno=<br>unit, mailto, mailcc, level, and empno are options."
 
 @app.route("/exec")
 def exec():
