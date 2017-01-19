@@ -226,7 +226,7 @@ def exec():
         unit = ""
         mailto = ""
         mailcc = ""
-        level = 0
+        level = "0"
         empno = ""
 
         try:
