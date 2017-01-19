@@ -206,7 +206,7 @@ def initialize(args):
 
 @app.route("/")
 def api_root():
-    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&mailto=&mailcc=&unit="
+    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&mailto=&mailcc=&unit=&level=&empno=<br>unit, mailto, mailcc, level, and empno are not options."
 
 @app.route("/exec")
 def exec():
@@ -214,31 +214,49 @@ def exec():
 
     dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
     counter += 1
-    if "title" in request.args and "url" in request.args and "mailto" in request.args and "mailcc" in request.args and "unit" in request.args:
-        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request["level"]+" "+request.args["mailto"]+" "+request.args["mailcc"]+" "+request.args["unit"]+" "+request["empno"])
+    if "title" in request.args and "url" in request.args:
+        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"])
         pattern = "^http(s)?://"
         if not re.match(pattern, request.args["url"]):
             logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on url argument.")
             return "Syntax error on url argument."
-        pattern = "^(((.*?)@(.*?));)+$"
-        if not re.match(pattern, request.args["mailto"]):
-            logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailto argument.")
-            return "Syntax error on mailto argument."
-        pattern = "^(((.*?)@(.*?));)*$"
-        if not re.match(pattern, request.args["mailcc"]):
-            logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailcc argument.")
-            return "Syntax error on mailcc argument."
 
         title = request.args["title"]
         url = request.args["url"]
-        mailto = request.args["mailto"].replace(";", " ")
-        mailcc = request.args["mailcc"].replace(";", " ")
-        unit = request.args["unit"]
+        unit = ""
+        mailto = ""
+        mailcc = ""
         level = 0
         empno = ""
 
         try:
-            level = int(request.args["level"])
+            unit = request.args["unit"]
+        except Exception as e:
+            #print(e)
+            pass
+
+        try:
+            pattern = "^(((.*?)@(.*?));)*$"
+            if not re.match(pattern, request.args["mailto"]):
+                logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailto argument.")
+                return "Syntax error on mailto argument."
+            mailto = request.args["mailto"].replace(";", " ")
+        except Exception as e:
+            #print(e)
+            pass
+
+        try:
+            pattern = "^(((.*?)@(.*?));)*$"
+            if not re.match(pattern, request.args["mailcc"]):
+                logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailcc argument.")
+                return "Syntax error on mailcc argument."
+            mailcc = request.args["mailcc"].replace(";", " ")
+        except Exception as e:
+            #print(e)
+            pass
+
+        try:
+            level = str(int(request.args["level"]))
         except Exception as e:
             #print(e)
             pass
@@ -251,7 +269,7 @@ def exec():
 
         request_queue.put({"counter": counter, "title": title, "url": url, "mailto": mailto, "mailcc": mailcc, "unit": unit, "level": level, "empno": empno, "datetime": dt, "send_report": False})
 
-        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+request.args["mailto"]+", \"mailcc\": "+request.args["mailcc"]+", \"unit\": "+request.args["unit"]+", \"level\": "+request.args["level"]+", \"empno\": "+request.args["empno"]+"]"
+        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+mailto+", \"mailcc\": "+mailcc+", \"unit\": "+unit+", \"level\": "+level+", \"empno\": "+empno+"]"
         return "We are working on it.<br>The followings are your input data: "+data
     else:
         logger.warn(str(counter)+" Something wrong happend. Check you have send whole parameters.")
@@ -282,4 +300,4 @@ if __name__ == "__main__":
 
     args = arg_initialize(argv)
     initialize(args)
-    app.run()
+    app.run(host="0.0.0.0")

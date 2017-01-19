@@ -71,7 +71,7 @@ class Config():
             self.auth = True
         else:
             self.auth = False
-        self.admin_email = [int(i) for i in _admin_email.split(",")]
+        self.admin_email = [str(i) for i in _admin_email.split(",")]
         if _multithread == "YES":
             self.multithread = True
         else:
