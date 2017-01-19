@@ -58,10 +58,10 @@ class HTTPRequestHandler(threading.Thread):
             return
 
         if seperate:
-            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\"")
+            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\" --description \""+request["empno"]+"\"")
             record = _record.read().replace("\n", "")
         else:
-            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\"")
+            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\" --description \""+request["empno"]+"\"")
             record = _record.read().replace("\n", "")
 
         try:
@@ -70,19 +70,24 @@ class HTTPRequestHandler(threading.Thread):
             # print(e)
             pass
 
-        if record in config.broken_link:
-            print(str(request["counter"])+" "+request["title"])
-            print("Output. ("+str(record)+")")
-            error_msg = error_code_description(record)
-            if send_mail:
-                os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
+        if request["level"] == 0:
+            if record in config.broken_link:
+                print(str(request["counter"])+" "+request["title"])
+                print("Output. ("+str(record)+")")
+                error_msg = error_code_description(record)
+                if send_mail:
+                    os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
+                else:
+                    print("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
+                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" sent OK")
             else:
-                print("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
-            logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" sent OK")
+                print(str(request["counter"])+" "+request["title"])
+                print("No output. ("+str(record)+")")
+                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
         else:
-            print(str(request["counter"])+" "+request["title"])
-            print("No output. ("+str(record)+")")
-            logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" no sent OK")
+            logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
+            print(record)
+            pass
 
         _record.close()
 
@@ -210,7 +215,7 @@ def exec():
     dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
     counter += 1
     if "title" in request.args and "url" in request.args and "mailto" in request.args and "mailcc" in request.args and "unit" in request.args:
-        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request.args["mailto"]+" "+request.args["mailcc"]+" "+request.args["unit"])
+        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request["level"]+" "+request.args["mailto"]+" "+request.args["mailcc"]+" "+request.args["unit"]+" "+request["empno"])
         pattern = "^http(s)?://"
         if not re.match(pattern, request.args["url"]):
             logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on url argument.")
@@ -229,10 +234,24 @@ def exec():
         mailto = request.args["mailto"].replace(";", " ")
         mailcc = request.args["mailcc"].replace(";", " ")
         unit = request.args["unit"]
+        level = 0
+        empno = ""
 
-        request_queue.put({"counter": counter, "title": title, "url": url, "mailto": mailto, "mailcc": mailcc, "unit": unit, "datetime": dt, "send_report": False})
+        try:
+            level = int(request.args["level"])
+        except Exception as e:
+            #print(e)
+            pass
 
-        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+request.args["mailto"]+", \"mailcc\": "+request.args["mailcc"]+", \"unit\": "+request.args["unit"]+"]"
+        try:
+            empno = request.args["empno"]
+        except Exception as e:
+            #print(e)
+            pass
+
+        request_queue.put({"counter": counter, "title": title, "url": url, "mailto": mailto, "mailcc": mailcc, "unit": unit, "level": level, "empno": empno, "datetime": dt, "send_report": False})
+
+        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+request.args["mailto"]+", \"mailcc\": "+request.args["mailcc"]+", \"unit\": "+request.args["unit"]+", \"level\": "+request.args["level"]+", \"empno\": "+request.args["empno"]+"]"
         return "We are working on it.<br>The followings are your input data: "+data
     else:
         logger.warn(str(counter)+" Something wrong happend. Check you have send whole parameters.")
@@ -258,6 +277,7 @@ def send_report():
 
 
 if __name__ == "__main__":
+    # TODO: Come in request log(who use it), output mail log(See PPT), 
     argv = sys.argv
 
     args = arg_initialize(argv)

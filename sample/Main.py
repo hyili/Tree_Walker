@@ -50,6 +50,7 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
     commandline_subparser.add_argument("--unit", default="", help="Specify parsing admin unit.")
+    commandline_subparser.add_argument("--description", default="", help="Specify the request description.")
     return parser.parse_args()
 
 """

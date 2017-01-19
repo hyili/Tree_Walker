@@ -40,6 +40,7 @@ class Config():
         config.sections()
 
         _auth = self.load(config, self.tag, "AUTH")
+        _admin_email = self.load(config, self.tag, "ADMIN_EMAIL")
         _multithread = self.load(config, self.tag, "MULTITHREAD")
         _threshold = self.load(config, self.tag, "THRESHOLD", int)
         _print_depth = self.load(config, self.tag, "PRINT_DEPTH")
@@ -64,11 +65,13 @@ class Config():
         _ssllab_verify = self.load(config, self.tag, "SSLLAB_VERIFY_CERTIFICATE")
         _logpath = self.load(config, self.tag, "LOGPATH")
         _outputpath = self.load(config, self.tag, "OUTPUTPATH")
+        # TODO: Simple report
 
         if _auth == "YES":
             self.auth = True
         else:
             self.auth = False
+        self.admin_email = [int(i) for i in _admin_email.split(",")]
         if _multithread == "YES":
             self.multithread = True
         else:

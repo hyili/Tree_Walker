@@ -15,9 +15,9 @@ def main():
         web source
         """
         # TODO: set option
-        admins = ["hyili@itri.org.tw"]
         config = ConfigLoader.Config(filename="../sample/config/.requests.conf", tag="WEBCHECK")
         config.load_config()
+        admins = config.admin_email
         (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
         if history[config.target_url]["status_code"] == 200:
             print("OK")
@@ -49,8 +49,10 @@ def main():
                 print(mailcc)
                 unit = root.get_element_by_id(i)[4].text_content()
                 print(unit)
+                level = "0"
+                empno = "WebCheck"
 
-                Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit, "timeout": config.timeout, "header": config.header})
+                Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit+"%level="+level+"&empno="+empno, "timeout": config.timeout, "header": config.header})  #  TODO: level, empno
             except KeyError as e:
                 print("No such id")
                 print(str(e))
