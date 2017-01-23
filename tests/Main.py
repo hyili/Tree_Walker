@@ -5,10 +5,11 @@ import sys
 import logging
 import argparse
 
-from src import Request
-from src import Output
-from src import ConfigLoader
-from src.tool import Functions
+import context
+import Request
+import Output
+import ConfigLoader
+from tool import Functions
 
 """
 Logger init

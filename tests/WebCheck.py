@@ -5,8 +5,8 @@ import lxml.html
 import time
 
 import context
-from src import Request
-from src import ConfigLoader
+import Request
+import ConfigLoader
 
 
 def main():

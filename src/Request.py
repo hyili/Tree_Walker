@@ -18,11 +18,11 @@ import threading
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
-from src import GlobalVars
-from src import Authenticate
-from src.tool import Webdriver
-from src.tool import Functions
-from src.tool import History
+import GlobalVars
+import Authenticate
+from tool import Webdriver
+from tool import Functions
+from tool import History
 
 
 """

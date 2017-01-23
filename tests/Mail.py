@@ -10,7 +10,8 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from src import ConfigLoader
+import context
+import ConfigLoader
 
 
 """
@@ -49,7 +50,7 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
                 att['Content-Disposition'] = "attachment; filename=\""+filename.split("/")[-1]+"\""
                 msg.attach(att)
         except Exception as e:
-            # print(e)
+            print(e)
             quit()
 
     try:
@@ -59,7 +60,7 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
         smtp.sendmail(from_addr=sender, to_addrs=receivers+ccreceivers+secretccreceivers, msg=msg.as_string())
         smtp.quit()
     except Exception as e:
-        # print(e)
+        print(e)
         quit()
 
 """

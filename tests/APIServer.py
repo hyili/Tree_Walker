@@ -17,8 +17,8 @@ from flask import Flask, url_for
 from flask import request
 
 import context
-from src import Request
-from src import ConfigLoader
+import Request
+import ConfigLoader
 
 app = Flask(__name__)
 
@@ -190,14 +190,14 @@ def initialize(args):
     global logger, request_queue, threads, event, num_of_worker_threads, counter
 
     signal.signal(signal.SIGINT, signal_handler)
-    logger = log_initialize("apiserver.log")
+    logger = log_initialize("logs/apiserver.log")
     request_queue = queue.Queue()
     threads = []
     event = threading.Event()
     send_report_event = threading.Event()
     num_of_worker_threads = args.threads
     counter = 0
-    conf = ConfigLoader.Config(filename="../sample/config/.requests.conf", tag="APISERVER")
+    conf = ConfigLoader.Config(filename="config/.requests.conf", tag="APISERVER")
     conf.load_config()
     for i in range(0, num_of_worker_threads, 1):
         thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate, args.send_mail)

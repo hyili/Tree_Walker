@@ -6,7 +6,7 @@ import csv
 import datetime
 from lxml import etree
 
-from src import GlobalVars
+import GlobalVars
 
 
 """

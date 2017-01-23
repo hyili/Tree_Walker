@@ -6,11 +6,11 @@ import time
 import datetime
 import requests
 
-from src import GlobalVars
-from src.tool.ssllab import ssllabsscanner as ssllabscanner
-from src.tool import History
-from src.tool import Webdriver
-from src.tool import Functions
+import GlobalVars
+from tool.ssllab import ssllabsscanner as ssllabscanner
+from tool import History
+from tool import Webdriver
+from tool import Functions
 
 """
 Authentication class

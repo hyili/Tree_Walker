@@ -3,7 +3,7 @@
 
 import configparser
 
-from src.tool import Functions
+from tool import Functions
 
 """
 Config class
@@ -20,13 +20,13 @@ class Config():
         try:
             result = config.get(tag, option)
         except configparser.NoSectionError as e:
-            # print(e)
+            print(e)
             quit()
         except:
             try:
                 result = config.get("DEFAULT", option)
             except Exception as e:
-                # print(e)
+                print(e)
                 quit()
 
         if funct is None:
