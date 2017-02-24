@@ -15,7 +15,7 @@ def main():
         web source
         """
         # TODO: set option
-        config = ConfigLoader.Config(filename="../sample/config/.requests.conf", tag="WEBCHECK")
+        config = ConfigLoader.Config(filename="config/.requests.conf", tag="WEBCHECK")
         config.load_config()
         admins = config.admin_email
         (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
@@ -52,7 +52,7 @@ def main():
                 level = "0"
                 empno = "WebCheck"
 
-                Request.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit+"%level="+level+"&empno="+empno, "timeout": config.timeout, "header": config.header})  #  TODO: level, empno
+                Request.GlobalVars.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit+"%level="+level+"&empno="+empno, "timeout": config.timeout, "header": config.header})  #  TODO: level, empno
             except KeyError as e:
                 print("No such id")
                 print(str(e))
@@ -68,7 +68,7 @@ def main():
             for admin in admins:
                 receiver += admin + ";"
             print("Send Report.")
-            Request.history_in_queue.put({"url": "http://localhost:5000/send_report?title=Send_Report&mailto="+receiver, "timeout": config.timeout, "header": config.header})
+            Request.GlobalVars.history_in_queue.put({"url": "http://localhost:5000/send_report?title=Send_Report&mailto="+receiver, "timeout": config.timeout, "header": config.header})
             time.sleep(20)
             Request.close()
             quit()
