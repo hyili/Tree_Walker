@@ -133,7 +133,7 @@ def file_generator(history, logger, config, output_filename):
                 for log in history:
                     if history[log]["depth"] not in config.print_depth:
                         continue
-                    if history[log]["status_code"] not in config.filter_code or history[log]["contained_broken_link"] != 0:
+                    if history[log]["status_code"] not in config.filter_code:
                         try:
                             fielddata = [date_time, str(history[log]["parent_url"]), str(history[log]["link_url"]), str(history[log]["link_name"]), str(history[log]["current_url"]), str(history[log]["ssl_grade"]), str(history[log]["ssl_report_url"]), str(history[log]["status_code"]), str(history[log]["contained_broken_link"]), str(history[log]["admin_email"]), str(history[log]["admin_unit"]), str(history[log]["time_cost"]), str(history[log]["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
                             row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
@@ -155,7 +155,7 @@ def file_generator(history, logger, config, output_filename):
                 for log in sort_by_status:
                     if log["depth"] not in config.print_depth:
                         continue
-                    if log["status_code"] not in config.filter_code or log["contained_broken_link"] != 0:
+                    if log["status_code"] not in config.filter_code:
                         try:
                             fielddata = [date_time, str(log["parent_url"]), str(log["link_url"]), str(log["link_name"]), str(log["current_url"]), str(log["ssl_grade"]), str(log["ssl_report_url"]), str(log["status_code"]), str(log["contained_broken_link"]), str(log["admin_email"]), str(log["admin_unit"]), str(log["time_cost"]), str(log["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
                             formateddata = [fielddata[i-1] for i in config.type_setting]

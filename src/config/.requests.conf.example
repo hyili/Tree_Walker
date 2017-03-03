@@ -285,7 +285,7 @@ FILTER=200
 FORMAT=CSV,STDOUT
 # Let the system always sends mail, regard 200 as broken link
 BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
-TYPE_SETTING=1,2,3,4,8,12,13,14,15,16
+TYPE_SETTING=1,3,4,8,12,13,14,15,16
 
 [WEBCHECK]
 USER=username
