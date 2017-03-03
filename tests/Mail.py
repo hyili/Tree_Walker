@@ -46,7 +46,7 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
     for filename in filenames:
         try:
             with open(filename, "rb") as attached_file:
-                att = MIMEApplication(attached_file.read(), Name=filename)
+                att = MIMEApplication(attached_file.read(), Name=filename.split("/")[-1])
                 att['Content-Disposition'] = "attachment; filename=\""+filename.split("/")[-1]+"\""
                 msg.attach(att)
         except Exception as e:

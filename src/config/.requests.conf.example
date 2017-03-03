@@ -212,6 +212,30 @@ LOGPATH=logs/
 # --------------------------------------------------------------------------------------- #
 OUTPUTPATH=output/
 
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
+# TYPE_SETTING={Type setting of csv output file}                                          #
+#                                                                                         #
+# 1. "日期時間"
+# 2. "從何而來"
+# 3. "連結網址"
+# 4. "連結名稱"
+# 5. "當前網址"
+# 6. "Certificate等級"
+# 7. "Certificate報告"
+# 8. "狀態碼"
+# 9. "第一層失連數"
+# 10. "負責人email"
+# 11. "負責人單位"
+# 12. "花費時間"
+# 13. "原因"
+# 14. "掃描層數"
+# 15. "共印出幾條網址"
+# 16. "共掃過幾條網址"
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+
 
 
 
@@ -230,6 +254,7 @@ FORMAT=STDOUT
 
 
 [APISERVER]
+# The user is set for report sending
 USER=username
 PASS=password
 AUTH=NO
@@ -242,6 +267,25 @@ PRINT_DEPTH=0
 THRESHOLD=3
 FILTER=200
 FORMAT=CSV,STDOUT
+
+[APISERVER-WEB-BACKEND]
+# The user is set for report sending
+USER=username
+PASS=password
+AUTH=NO
+FOLLOW_REDIRECTION=NO
+VERIFY_CERTIFICATE=NO
+SSLLAB_VERIFY_CERTIFICATE=NO
+DEPTH=0
+TIMEOUT=20
+PRINT_DEPTH=0,1,2,3,4,5
+THRESHOLD=3
+# Do not show on report if status is listed below
+FILTER=200
+FORMAT=CSV,STDOUT
+# Let the system always sends mail, regard 200 as broken link
+BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
+TYPE_SETTING=1,2,3,4,8,12,13,14,15,16
 
 [WEBCHECK]
 USER=username

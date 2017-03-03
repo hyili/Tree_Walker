@@ -66,6 +66,7 @@ class Config():
         _logpath = self.load(config, self.tag, "LOGPATH")
         _outputpath = self.load(config, self.tag, "OUTPUTPATH")
         # TODO: Simple report
+        _type_setting = self.load(config, self.tag, "TYPE_SETTING")
 
         if _auth == "YES":
             self.auth = True
@@ -112,3 +113,4 @@ class Config():
             self.ssllab_verify = False
         self.logpath = _logpath
         self.outputpath = _outputpath
+        self.type_setting = [int(i) for i in _type_setting.split(",")]

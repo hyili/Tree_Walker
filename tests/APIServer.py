@@ -50,15 +50,18 @@ class HTTPRequestHandler(threading.Thread):
                     time.sleep(self.config.timeout)
                     pass
 
-            if send_mail:
-                os.system("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
+            if seperate:
+                # TODO: send multi-reports to admin
+                pass
             else:
-                print("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
+                # Always send report to admins
+                os.system("./Mail.py --tag APISERVER --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
 
             return
-
+        
+        start_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d-%H:%M:%S")
         if seperate:
-            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"\" --description \""+request["empno"]+"\"")
+            _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"-"+start_time+"\" --description \""+request["empno"]+"\"")
             record = _record.read().replace("\n", "")
         else:
             _record = os.popen("./Main.py commandline --tag APISERVER --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\" --description \""+request["empno"]+"\"")
@@ -70,22 +73,89 @@ class HTTPRequestHandler(threading.Thread):
             # print(e)
             pass
 
-        if request["level"] == 0:
+        # TODO: Broken Link Checker
+        if request["level"] == "0":
             if record in config.broken_link:
                 print(str(request["counter"])+" "+request["title"])
                 print("Output. ("+str(record)+")")
                 error_msg = error_code_description(record)
                 if send_mail:
-                    os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
+                    os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
+"--subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" "+
+"--content "+
+	"\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>"+
+	"「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>"+
+	"目前已於 "+start_time+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>"+
+	"附加說明：<br>"+
+		"1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
+		"2.      目前網站首頁回報的失聯狀況範圍包含：<br>"+
+			"a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
+			"b. 內部伺服器錯誤等 (500, 503)<br>"+
+			"c. 超過20秒未回應，或無法成功建立連結<br>"+
+	"其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>"+
+	"任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>"+
+	"本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
                 else:
-                    print("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" --subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" --content \"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>目前已於 "+request["datetime"]+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>附加說明：<br>1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>2.      目前網站首頁回報的失聯狀況範圍包含：<br>   a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>    b. 內部伺服器錯誤等 (500, 503)<br>  c. 超過20秒未回應，或無法成功建立連結<br>   其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
+                    print("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
+"--subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" "+
+"--content "+
+	"\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>"+
+	"「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>"+
+	"目前已於 "+start_time+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>"+
+	"附加說明：<br>"+
+		"1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
+		"2.      目前網站首頁回報的失聯狀況範圍包含：<br>"+
+			"a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
+			"b. 內部伺服器錯誤等 (500, 503)<br>"+
+			"c. 超過20秒未回應，或無法成功建立連結<br>"+
+	"其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>"+
+	"任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>"+
+	"本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
                 logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" sent OK")
             else:
                 print(str(request["counter"])+" "+request["title"])
                 print("No output. ("+str(record)+")")
                 logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
+        # TODO: Broken Link Checker Web
         else:
-            logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
+            if record in config.broken_link:
+                print(str(request["counter"])+" "+request["title"])
+                print("Output. ("+str(record)+")")
+                error_msg = error_code_description(record)
+                if send_mail:
+					# TODO: File absolute path
+                    os.system("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
+"--subject \"請查收「"+request["title"]+"」失連報表，謝謝！\" "+
+"--content "+
+	"\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>謝謝您使用ITRIWeb Broken Link Checker，您的網站失連之報表請參閱附件。<br><br>"+
+	"附加說明：<br>"+
+		"1. 所有回報皆透由系統掃瞄和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
+		"2. 目前網站頁面所回報的失聯狀況範圍包含：<br>"+
+			"a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
+			"b. 內部伺服器錯誤等 (500, 503)<br>"+
+			"c. 超過20秒未回應，或無法成功建立連結<br>"+
+	"其他需再做專業評估的例外情況，不包含於回報範圍。<br><br>"+
+	"任何問題，歡迎聯絡蘇益慧小姐#17234。<br></body></html>\" "+
+"--files \"output/"+request["title"]+"-"+start_time+".csv\"")
+                else:
+					# TODO: File absolute path
+                    print("./Mail.py --tag APISERVER --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
+"--subject \"請查收「"+request["title"]+"」失連報表，謝謝！\" "+
+"--content "+
+	"\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>謝謝您使用ITRIWeb Broken Link Checker，您的網站失連之報表請參閱附件。<br><br>"+
+	"附加說明：<br>"+
+		"1. 所有回報皆透由系統掃瞄和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
+		"2. 目前網站頁面所回報的失聯狀況範圍包含：<br>"+
+			"a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
+			"b. 內部伺服器錯誤等 (500, 503)<br>"+
+			"c. 超過20秒未回應，或無法成功建立連結<br>"+
+	"其他需再做專業評估的例外情況，不包含於回報範圍。<br><br>"+
+	"任何問題，歡迎聯絡蘇益慧小姐#17234。<br></body></html>\" "+
+"--files \"output/"+request["title"]+"-"+start_time+".csv\"")
+            else:
+                print(str(request["counter"])+" "+request["title"])
+                print("No output. ("+str(record)+")")
+                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
             print(record)
             pass
 
