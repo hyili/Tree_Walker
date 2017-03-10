@@ -38,9 +38,6 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--tag", default="COMMANDLINE", help="Template tag for commandline execution.")
     commandline_subparser.add_argument("--url", help="Specify target url.", required=True)
     commandline_subparser.add_argument("--depth", default=-1, type=int, help="Specify depth you want.")
-    auth_group = commandline_subparser.add_mutually_exclusive_group()
-    auth_group.add_argument("--auth", default=None, dest="auth", action="store_true")
-    auth_group.add_argument("--no-auth", default=None, dest="auth", action="store_false")
     cert_group = commandline_subparser.add_mutually_exclusive_group()
     cert_group.add_argument("--verify-cert", default=None, dest="verify", action="store_true")
     cert_group.add_argument("--no-verify-cert", default=None, dest="verify", action="store_false")
@@ -79,8 +76,6 @@ def round_funct(args):
         config = ConfigLoader.Config(filename="config/.requests.conf", tag=args.tag)
         config.load_config()
 
-        if args.auth is not None:
-            config.auth = args.auth
         if args.verify is not None:
             config.verify = args.verify
         if args.redirect is not None:

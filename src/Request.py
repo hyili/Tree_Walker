@@ -192,13 +192,23 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
             if sub_url in history:
                 if history[sub_url]["status_code"] in config.broken_link:
                     history[config.current_url]["contained_broken_link"] += 1
-
+                
+#                if "http://hyili.idv.tw/e.html" in history["http://hyili.idv.tw/assda.html"]["parent_url"]:
+#                    print("1fuck"+str(depth)+" ")
                 if config.current_url not in history[sub_url]["parent_url"]:
+#                    print(history["http://hyili.idv.tw/assda.html"]["parent_url"])
                     history[sub_url]["parent_url"].append(str(config.current_url))
+#                    print(history["http://hyili.idv.tw/assda.html"]["parent_url"])
+#                    print(hex(id(history["http://hyili.idv.tw/assda.html"]["parent_url"])))
+#                    print(hex(id(history[sub_url]["parent_url"])))
+#                    print(sub_url+" ")
+#                    print(config.current_url+" ")
+#                if "http://hyili.idv.tw/e.html" in history["http://hyili.idv.tw/assda.html"]["parent_url"]:
+#                    print("fuck"+str(depth)+" ")
 
                 continue
             else:
-                history = History.history_handler(history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
+                history = History.history_handler(init=True, history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
 
             GlobalVars.history_in_queue.put({"counter": counter, "total": total_linktexts, "url": sub_url, "timeout": config.timeout, "header": config.header})
 

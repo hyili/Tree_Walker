@@ -5,7 +5,7 @@
 """
 history handler
 """
-def history_handler(init=False, history={}, url="", parent_urls=[], link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
+def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
     if url == "" or history is None:
         print("History update failed.")
         return history
@@ -28,9 +28,10 @@ def history_handler(init=False, history={}, url="", parent_urls=[], link_url="",
     else:
         if url not in history:
             history_handler(init=True, history=history, url=url)
-        for parent_url in parent_urls:
-            if parent_url not in history[url]["parent_url"]:
-                history[url]["parent_url"].append(parent_url)
+        if parent_urls is not None:
+            for parent_url in parent_urls:
+                if parent_url not in history[url]["parent_url"]:
+                    history[url]["parent_url"].append(parent_url)
         if link_url != "":
             history[url]["link_url"] = link_url
         if link_name != "":

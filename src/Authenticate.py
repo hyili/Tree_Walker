@@ -30,7 +30,7 @@ class Authenticate():
 
     def authenticate(self, retries=0):
         config = self.config
-        self.history = History.history_handler(init=True, url=self.config.target_url)
+        self.history = History.history_handler(init=True, history={}, url=self.config.target_url, parent_urls=list())
         r = None
         ssl_grade = "?"
         ssl_report_url = ""

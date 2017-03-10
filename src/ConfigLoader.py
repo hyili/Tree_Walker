@@ -58,6 +58,7 @@ class Config():
         _broken_link = self.load(config, self.tag, "BROKEN_LINK")
         _max_retries = self.load(config, self.tag, "MAX_RETRIES", int)
         _output_format = self.load(config, self.tag, "FORMAT")
+        _group_parent_url = self.load(config, self.tag, "GROUP_PARENT_URL")
         _sort = self.load(config, self.tag, "SORT")
         _follow_redirection = self.load(config, self.tag, "FOLLOW_REDIRECTION")
         _driver_location = self.load(config, self.tag, "DRIVER_LOCATION")
@@ -97,6 +98,10 @@ class Config():
         self.broken_link = [int(i) for i in _broken_link.split(",")]
         self.max_retries = _max_retries
         self.output_format = [str(i) for i in _output_format.split(",")]
+        if _group_parent_url == "YES":
+            self.group_parent_url = True
+        else:
+            self.group_parent_url = False
         self.sort = _sort
         if _follow_redirection == "YES":
             self.follow_redirection = True

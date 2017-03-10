@@ -45,6 +45,7 @@ transform the target_url to domain_url in regular expression format
 def pattern_generator(target_url):
     domain_url = target_url
 
+    domain_url = re.sub("http(s)?\://", "", domain_url)
     domain_url = re.sub("\.", "\\.", domain_url)
     domain_url = re.sub("\:", "\\:", domain_url)
     domain_url = re.sub("\?", "\\?", domain_url)
