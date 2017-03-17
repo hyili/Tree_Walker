@@ -70,7 +70,8 @@ class HTTPRequestHandler(threading.Thread):
         try:
             record = int(record)
         except Exception as e:
-            # print(e)
+            if config.debug_mode:
+                print(e)
             pass
 
         # TODO: Broken Link Checker

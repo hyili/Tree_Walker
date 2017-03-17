@@ -36,7 +36,6 @@ def detect_encoding(r):
         else:
             return header
     except Exception as e:
-        # print(e)
         return None
 
 """

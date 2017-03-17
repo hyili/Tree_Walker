@@ -63,7 +63,8 @@ def file_generator(history, logger, config, output_filename):
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(history[log]["reason"]))
                     except Exception as e:
-                        # print(e)
+                        if config.debug_mode:
+                            print(e)
                         continue
             tree = etree.ElementTree(time)
             with open(config.outputpath+"/"+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
@@ -109,7 +110,8 @@ def file_generator(history, logger, config, output_filename):
                         reason = etree.SubElement(locate, "reason")
                         reason.set("value", str(log["reason"]))
                     except Exception as e:
-                        # print(e)
+                        if config.debug_mode:
+                            print(e)
                         continue
             tree = etree.ElementTree(time)
             with open(config.outputpath+"/"+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
@@ -146,7 +148,8 @@ def file_generator(history, logger, config, output_filename):
                                     row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
                                     writer.writerow(row)
                         except Exception as e:
-                            # print(e)
+                            if config.debug_mode:
+                                print(e)
                             continue
                 if config.depth != 0:
                     pass
@@ -177,7 +180,8 @@ def file_generator(history, logger, config, output_filename):
                                     row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
                                     writer.writerow(row)
                         except Exception as e:
-                            # print(e)
+                            if config.debug_mode:
+                                print(e)
                             continue
                 if config.depth != 0:
                     pass

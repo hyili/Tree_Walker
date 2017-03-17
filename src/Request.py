@@ -68,26 +68,38 @@ class HTTPRequest(threading.Thread):
             status_code = -2
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.Timeout as e:
             status_code = -3
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.TooManyRedirects as e:
             status_code = -4
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.ConnectionError as e:
             status_code = -5
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.InvalidSchema as e:
             status_code = -6
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         except Exception as e:
             status_code = -7
             reason = e
             r = None
+            if (config.debug_mode):
+                print(e)
         finally:
             if status_code in config.broken_link:
                 if retries < config.max_retries:
@@ -193,18 +205,8 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                 if history[sub_url]["status_code"] in config.broken_link:
                     history[config.current_url]["contained_broken_link"] += 1
                 
-#                if "http://hyili.idv.tw/e.html" in history["http://hyili.idv.tw/assda.html"]["parent_url"]:
-#                    print("1fuck"+str(depth)+" ")
                 if config.current_url not in history[sub_url]["parent_url"]:
-#                    print(history["http://hyili.idv.tw/assda.html"]["parent_url"])
                     history[sub_url]["parent_url"].append(str(config.current_url))
-#                    print(history["http://hyili.idv.tw/assda.html"]["parent_url"])
-#                    print(hex(id(history["http://hyili.idv.tw/assda.html"]["parent_url"])))
-#                    print(hex(id(history[sub_url]["parent_url"])))
-#                    print(sub_url+" ")
-#                    print(config.current_url+" ")
-#                if "http://hyili.idv.tw/e.html" in history["http://hyili.idv.tw/assda.html"]["parent_url"]:
-#                    print("fuck"+str(depth)+" ")
 
                 continue
             else:
@@ -227,7 +229,8 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                         if bool(re.search(pattern, r.headers["Content-Type"])):
                             links.append((sub_url, r.text))
                     except Exception as e:
-                        # print(e)
+                        if config.debug_mode:
+                            print(e)
                         pass
 
             if history[sub_url]["status_code"] in config.ignore_code:

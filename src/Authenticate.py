@@ -30,7 +30,7 @@ class Authenticate():
 
     def authenticate(self, retries=0):
         config = self.config
-        self.history = History.history_handler(init=True, history={}, url=self.config.target_url, parent_urls=list())
+        self.history = History.history_handler(init=True, history={}, url=config.target_url, parent_urls=list())
         r = None
         ssl_grade = "?"
         ssl_report_url = ""
@@ -43,7 +43,12 @@ class Authenticate():
             r = self.session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
 
             if config.auth:
-                r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
+                if (re.search("^https://itriforms\.itri\.org\.tw/itrisso_login\.fcc", r.url)):
+                    r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
+                else:
+                    if config.debug_mode:
+                        print("It's only for ITRI Single Sign On lol~")
+                    quit()
 
             if config.ssllab_verify:
                 ssl_grade = ssllabscanner.newScan(self.config.target_url)["endpoints"][0]["gradeTrustIgnored"]
@@ -54,21 +59,33 @@ class Authenticate():
         except requests.exceptions.HTTPError as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.Timeout as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.TooManyRedirects as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.ConnectionError as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         except requests.exceptions.InvalidSchema as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         except Exception as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
+            if (config.debug_mode):
+                print(e)
         finally:
             if self.history[config.target_url]["status_code"] in config.broken_link:
                 if retries < config.max_retries:
@@ -102,7 +119,8 @@ def authenticate(session, config, decode=None):
             if bool(re.search(pattern, response.headers["Content-Type"])):
                 ret_val = (response.text, history)
         except Exception as e:
-            # print(e)
+            if config.debug_mode:
+                print(e)
             pass
 
     if history[config.target_url]["status_code"] in config.ignore_code:

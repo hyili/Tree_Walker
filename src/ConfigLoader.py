@@ -39,6 +39,7 @@ class Config():
         config.read(self.filename)
         config.sections()
 
+        _debug_mode = self.load(config, self.tag, "DEBUG_MODE")
         _auth = self.load(config, self.tag, "AUTH")
         _admin_email = self.load(config, self.tag, "ADMIN_EMAIL")
         _multithread = self.load(config, self.tag, "MULTITHREAD")
@@ -69,6 +70,10 @@ class Config():
         # TODO: Simple report
         _type_setting = self.load(config, self.tag, "TYPE_SETTING")
 
+        if _debug_mode == "YES":
+            self.debug_mode = True
+        else:
+            self.debug_mode = False
         if _auth == "YES":
             self.auth = True
         else:
