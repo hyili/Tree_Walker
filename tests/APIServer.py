@@ -233,6 +233,8 @@ def arg_initialize(argv):
     parser = argparse.ArgumentParser(description="Start to running API server.")
     parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads. Default is 1.")
     parser.add_argument("--tag", help="Specify tag in the config.", default="APISERVER", required=True)
+    parser.add_argument("--ip", help="Specify the binding address. Default is localhost.", default="localhost")
+    parser.add_argument("--port", help="Specify the binding port. Default is 5000.", default=5000)
     seperate_group = parser.add_mutually_exclusive_group()
     seperate_group.add_argument("--onefile", default=False, dest="seperate", action="store_false", help="Default is onefile.")
     seperate_group.add_argument("--multifile", default=False, dest="seperate", action="store_true", help="Default is onefile.")
@@ -372,4 +374,4 @@ if __name__ == "__main__":
 
     args = arg_initialize(argv)
     initialize(args)
-    app.run(host="0.0.0.0")
+    app.run(host=args.ip, port=args.port)
