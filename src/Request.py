@@ -69,44 +69,44 @@ class HTTPRequest(threading.Thread):
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         except requests.exceptions.Timeout as e:
             status_code = -3
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         except requests.exceptions.TooManyRedirects as e:
             status_code = -4
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         except requests.exceptions.ConnectionError as e:
             status_code = -5
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         except requests.exceptions.InvalidSchema as e:
             status_code = -6
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         except Exception as e:
             status_code = -7
             reason = e
             r = None
             if (config.debug_mode):
-                print(e)
+                print("Request: "+str(e))
         finally:
             if status_code in config.broken_link:
                 if retries < config.max_retries:
                     if status_code in config.retry_code:
                         time.sleep(60)
-                    response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
-                    r = response
+                        response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
+                        r = response
 
             if retries == 0:
                 end_time = datetime.datetime.now()
@@ -230,7 +230,7 @@ def navigate(linktexts, config, depth=1, history={}, decode=None):
                             links.append((sub_url, r.text))
                     except Exception as e:
                         if config.debug_mode:
-                            print(e)
+                            print("Request"+str(e))
                         pass
 
             if history[sub_url]["status_code"] in config.ignore_code:

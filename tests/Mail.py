@@ -50,7 +50,7 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
                 att['Content-Disposition'] = "attachment; filename=\""+filename.split("/")[-1]+"\""
                 msg.attach(att)
         except Exception as e:
-            print(e)
+            print("Mail: "+str(e))
             quit()
 
     try:
@@ -60,7 +60,7 @@ def send_mail(sender, receivers, ccreceivers, secretccreceivers, subject, conten
         smtp.sendmail(from_addr=sender, to_addrs=receivers+ccreceivers+secretccreceivers, msg=msg.as_string())
         smtp.quit()
     except Exception as e:
-        print(e)
+        print("Mail: "+str(e))
         quit()
 
 """

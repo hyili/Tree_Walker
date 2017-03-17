@@ -55,7 +55,7 @@ def main():
                 Request.GlobalVars.history_in_queue.put({"url": "http://localhost:5000/exec?title="+title+"&url="+url+"&mailto="+mailto+"&mailcc="+mailcc+"&unit="+unit+"%level="+level+"&empno="+empno, "timeout": config.timeout, "header": config.header})  #  TODO: level, empno
             except KeyError as e:
                 print("No such id")
-                print(str(e))
+                print("WebCheck: "+str(e))
                 break
 
             if i % 5 == 0:

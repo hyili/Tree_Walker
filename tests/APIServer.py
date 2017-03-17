@@ -71,7 +71,7 @@ class HTTPRequestHandler(threading.Thread):
             record = int(record)
         except Exception as e:
             if config.debug_mode:
-                print(e)
+                print("APIServer: "+str(e))
             pass
 
         # TODO: Broken Link Checker
@@ -157,8 +157,6 @@ class HTTPRequestHandler(threading.Thread):
                 print(str(request["counter"])+" "+request["title"])
                 print("No output. ("+str(record)+")")
                 logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
-            print(record)
-            pass
 
         _record.close()
 

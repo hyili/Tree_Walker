@@ -41,6 +41,7 @@ class Config():
 
         _debug_mode = self.load(config, self.tag, "DEBUG_MODE")
         _auth = self.load(config, self.tag, "AUTH")
+        _auth_url_pattern = self.load(config, self.tag, "AUTH_URL_PATTERN")
         _admin_email = self.load(config, self.tag, "ADMIN_EMAIL")
         _multithread = self.load(config, self.tag, "MULTITHREAD")
         _threshold = self.load(config, self.tag, "THRESHOLD", int)
@@ -78,6 +79,7 @@ class Config():
             self.auth = True
         else:
             self.auth = False
+        self.auth_url_pattern = _auth_url_pattern
         self.admin_email = [str(i) for i in _admin_email.split(",")]
         if _multithread == "YES":
             self.multithread = True
