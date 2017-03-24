@@ -174,6 +174,12 @@ def file_generator(history, logger, config, output_filename):
                                 row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
                                 writer.writerow(row)
                             else:
+                                if len(log["parent_url"]) == 0:
+                                    fielddata = [date_time, "", str(log["link_url"]), str(log["link_name"]), str(log["current_url"]), str(log["ssl_grade"]), str(log["ssl_report_url"]), str(log["status_code"]), str(log["contained_broken_link"]), str(log["admin_email"]), str(log["admin_unit"]), str(log["time_cost"]), str(log["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
+                                    formateddata = [fielddata[i-1] for i in config.type_setting]
+                                    row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
+                                    writer.writerow(row)
+                                    
                                 for parent_url in log["parent_url"]:
                                     fielddata = [date_time, str(parent_url), str(log["link_url"]), str(log["link_name"]), str(log["current_url"]), str(log["ssl_grade"]), str(log["ssl_report_url"]), str(log["status_code"]), str(log["contained_broken_link"]), str(log["admin_email"]), str(log["admin_unit"]), str(log["time_cost"]), str(log["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
                                     formateddata = [fielddata[i-1] for i in config.type_setting]
