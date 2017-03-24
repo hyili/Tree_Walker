@@ -123,7 +123,7 @@ def file_generator(history, logger, config, output_filename):
         if os.path.isfile(config.outputpath+"/"+output_filename+".csv"):
             file_exist = True
 
-        fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間", "原因", "掃描層數", "共印出幾條網址", "共掃過幾條網址"]
+        fieldnames = ["日期時間", "從何而來", "連結網址", "連結名稱", "當前網址", "Certificate等級", "Certificate報告", "狀態碼", "第一層失連數", "負責人email", "負責人單位", "花費時間(秒)", "原因", "掃描層數", "共印出幾條網址", "共掃過幾條網址"]
         formatednames = [fieldnames[i-1] for i in config.type_setting]
         if config.sort == "URL":
             with open(config.outputpath+"/"+output_filename+".csv", "a", encoding="utf-8-sig") as csvfile:
