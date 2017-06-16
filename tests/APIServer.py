@@ -269,7 +269,7 @@ def initialize(args):
     send_report_event = threading.Event()
     num_of_worker_threads = args.threads
     counter = 0
-    conf = ConfigLoader.Config(filename="config/.requests.conf", tag=args.tag)
+    conf = ConfigLoader.Config(config_path="config/.requests.conf", tag=args.tag)
     conf.load_config()
     for i in range(0, num_of_worker_threads, 1):
         thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate, args.send_mail)

@@ -78,7 +78,7 @@ def main():
     subject = args.subject
     content = args.content
 
-    config = ConfigLoader.Config(filename="config/.requests.conf", tag=tag)
+    config = ConfigLoader.Config(config_path="config/.requests.conf", tag=tag)
     config.load_config()
     if sender == "":
         sender = config.user+"@itri.org.tw"

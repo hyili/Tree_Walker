@@ -1,1 +1,3 @@
 src/config/.requests.conf
+__pycache__
+*\.un~

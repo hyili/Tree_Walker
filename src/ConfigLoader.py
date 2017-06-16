@@ -9,12 +9,18 @@ from tool import Functions
 Config class
 """
 class Config():
-    def __init__(self, tag, filename):
+    def __init__(self, tag, config_path, default_config_path="config/.requests.conf.default"):
         self.tag = tag
-        self.filename = filename
+        self.default_config_path = default_config_path
+        self.config_path = config_path
         self.title = ""
         self.email = ""
         self.unit = ""
+
+        self.default_config = configparser.ConfigParser()
+        self.default_config.read(self.default_config_path)
+        self.default_config.sections()
+
 
     def load(self, config, tag, option, funct=None):
         try:
@@ -24,7 +30,7 @@ class Config():
             quit()
         except:
             try:
-                result = config.get("DEFAULT", option)
+                result = self.default_config.get("DEFAULT", option)
             except Exception as e:
                 print(e)
                 quit()
@@ -36,7 +42,7 @@ class Config():
 
     def load_config(self):
         config = configparser.ConfigParser()
-        config.read(self.filename)
+        config.read(self.config_path)
         config.sections()
 
         _debug_mode = self.load(config, self.tag, "DEBUG_MODE")

@@ -15,7 +15,7 @@ def main():
         web source
         """
         # TODO: set option
-        config = ConfigLoader.Config(filename="config/.requests.conf", tag="WEBCHECK")
+        config = ConfigLoader.Config(config_path="config/.requests.conf", tag="WEBCHECK")
         config.load_config()
         admins = config.admin_email
         (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")

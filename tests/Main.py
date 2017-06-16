@@ -67,13 +67,13 @@ Round function
 def round_funct(args):
     if args.subparser_name == "config":
         for tag in args.tags[0:]:
-            config = ConfigLoader.Config(filename="config/.requests.conf", tag=tag)
+            config = ConfigLoader.Config(config_path="config/.requests.conf", tag=tag)
             config.load_config()
             logger = log_initialize(config.logpath)
             parse_funct(tag, config, logger)
     elif args.subparser_name == "commandline":
         filename = args.filename
-        config = ConfigLoader.Config(filename="config/.requests.conf", tag=args.tag)
+        config = ConfigLoader.Config(config_path="config/.requests.conf", tag=args.tag)
         config.load_config()
 
         if args.verify is not None:
