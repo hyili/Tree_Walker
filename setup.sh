@@ -3,7 +3,7 @@
 
 curr_path=`pwd`
 
-echo "\n--> Current directory: $curr_path"
+echo "--> Current directory: $curr_path"
 if [ -f "$curr_path/setup.sh" ]
 then
 	echo "--> Ok."
