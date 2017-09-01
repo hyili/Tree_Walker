@@ -100,3 +100,13 @@ def find_linktexts(source):
 
     return linktexts
 
+def find_headtitle(source):
+    soup = BeautifulSoup(source, "lxml")
+    headtitle = soup.find('title')
+    if headtitle != None:
+        headtitle = soup.find('title').get_text().strip()     #strip=去除空白
+
+	
+    #print("headtitle: ",headtitle)
+
+    return headtitle
