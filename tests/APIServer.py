@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8-sig -*-
 
-
 import re
 import os
 import sys
@@ -12,18 +11,20 @@ import logging
 import argparse
 import datetime
 import threading
+import subprocess
 
 from flask import Flask, url_for
 from flask import request
 
-import context
-import Request
-import ConfigLoader
+import Context  #src\Context.py tell src location
+import Request  #src\Request.py
+import ConfigLoader  #src\ConfigLoader.py
+import Output
 
 app = Flask(__name__)
 
 class HTTPRequestHandler(threading.Thread):
-    def __init__(self, thread_id, thread_name, threads, event, send_report_event, request_queue, config, seperate, send_mail):
+    def __init__(self, thread_id, thread_name, threads, event, send_report_event, request_queue, config, seperate):
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
@@ -35,14 +36,14 @@ class HTTPRequestHandler(threading.Thread):
         self.request_queue = request_queue
         self.config = config
         self.seperate = seperate
-        self.send_mail = send_mail
+
 
     def thread_status(self):
         return self.status
 
-    def handler(self, request, config, threads, seperate, send_mail):
+    def handler(self, request, config, threads, seperate):
         global logger
-
+        """
         if request["send_report"]:
             for thread in threads:
                 while thread.thread_status() == 1:
@@ -54,138 +55,71 @@ class HTTPRequestHandler(threading.Thread):
                 # TODO: send multi-reports to admin
                 pass
             else:
-                # Always send report to admins
-                os.system("./Mail.py --tag "+config.tag+" --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
-
+                print("A.mail");
+                #os.system("./Mail.py --tag "+config.tag+" --offset 1 --threshold 1 --receiver "+request["mailto"]+" --subject \"報表\" --files \"output/APILog.csv\"")
             return
+        """
         
         start_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d-%H:%M:%S")
-        if seperate:
-            _record = os.popen("./Main.py commandline --tag "+config.tag+" --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \""+request["title"]+"-"+start_time+"\" --description \""+request["empno"]+"\"")
+        print("handler time:"+start_time) #網址可連的話才會Print
+        logger.warn("handler time:"+start_time)
+        
+        if seperate: 
+            _record = os.popen("./Main.py commandline --tag "+config.tag+" --url \""+request["url"]+"\" --title \""+request["title"]+"\" --context \""+request["context"]+"\"")
             record = _record.read().replace("\n", "")
+            print("B record:"+record)
+            #logger.warn(record)
         else:
-            _record = os.popen("./Main.py commandline --tag "+config.tag+" --url "+request["url"]+" --depth "+request["level"]+" --title \""+request["title"]+"\" --email \""+request["mailto"]+"\" --unit \""+request["unit"]+"\" --filename \"APILog\" --description \""+request["empno"]+"\"")
+            _record = os.popen("./Main.py commandline --tag "+config.tag+" --url \""+request["url"]+"\" --title \""+request["title"]+"\" --context \""+request["context"]+"\"" +" --timewarn \""+request["timewarn"]+"\"" +" --systep_id \""+request["systep_id"]+"\"")
             record = _record.read().replace("\n", "")
+            #print("C record" + record)
+            #logger.warn(record)
+
+            print("C end")
 
         try:
             record = int(record)
+            print("int record:" + record)
+			
         except Exception as e:
             if config.debug_mode:
-                print("APIServer: "+str(e))
+                print("config.debug_mode")
+                print("APIServer: "+str(e)) 
             pass
 
-        # TODO: Broken Link Checker
-        if request["level"] == "0":
-            if record in config.broken_link:
-                print(str(request["counter"])+" "+request["title"])
-                print("Output. ("+str(record)+")")
-                error_msg = error_code_description(record)
-                if send_mail:
-                    os.system("./Mail.py --tag "+config.tag+" --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
-"--subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" "+
-"--content "+
-    "\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>"+
-    "「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>"+
-    "目前已於 "+start_time+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>"+
-    "附加說明：<br>"+
-        "1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
-        "2.      目前網站首頁回報的失聯狀況範圍包含：<br>"+
-            "a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
-            "b. 內部伺服器錯誤等 (500, 503)<br>"+
-            "c. 超過20秒未回應，或無法成功建立連結<br>"+
-    "其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>"+
-    "任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>"+
-    "本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
-                else:
-                    print("./Mail.py --tag "+config.tag+" --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
-"--subject \"您好，請查收"+request["title"]+"網站無法提供正常服務之參考資訊，謝謝！\" "+
-"--content "+
-    "\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>各位網站/系統負責人及單位管理代表您好：<br><br>"+
-    "「<a href=https://webcheck.itri.org.tw/index.aspx>ITRI對外資訊系統登錄及管理平台</a>」已於2016/8/15(一)起提供貼心的網站失連偵測服務(Broken Link Checker)，每天下午定期為登錄的網站進行偵測，當網站首頁出現無效連結時，會發信通知該網站/系統負責人及單位管理代表。<br>"+
-    "目前已於 "+start_time+" 偵測到您所管理的「<a href="+request["url"]+">"+request["title"]+"</a>」<a href="+request["url"]+">"+request["url"]+"</a> 出現"+error_msg+"<br>"+
-    "附加說明：<br>"+
-        "1.      所有回報皆透由測試系統自動偵測和記錄，僅能呈現每日測試當下網站實際狀況，供相關負責人參考。<br>"+
-        "2.      目前網站首頁回報的失聯狀況範圍包含：<br>"+
-            "a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404)<br>"+
-            "b. 內部伺服器錯誤等 (500, 503)<br>"+
-            "c. 超過20秒未回應，或無法成功建立連結<br>"+
-    "其他需再做專業評估的例外情況，不包含於定期偵測回報的範圍。<br><br>"+
-    "任何問題，或有收通知信之困擾，歡迎聯絡蘇益慧(#17234)、張惠娟經理(#13968)，謝謝您～<br><br>"+
-    "本郵件為系統自動發送，請勿直接回信！<br></body></html>\"")
-                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" sent OK")
-            else:
-                print(str(request["counter"])+" "+request["title"])
-                print("No output. ("+str(record)+")")
-                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
-        # TODO: Broken Link Checker Web
-        else:
-            if record in config.broken_link:
-                print(str(request["counter"])+" "+request["title"])
-                print("Output. ("+str(record)+")")
-                error_msg = error_code_description(record)
-                if send_mail:
-                    # TODO: File absolute path
-                    os.system("./Mail.py --tag "+config.tag+" --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
-"--subject \"請查收「"+request["title"]+"」失連報表，謝謝！\" "+
-"--content "+
-    "\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>謝謝您使用ITRIWeb Broken Link Checker，您的網站失連之報表請參閱附件。<br><br>"+
-    "附加說明：<br>"+
-        "1. 所有回報皆透由系統掃瞄和記錄，僅能呈現測試當下網站實際狀況，供相關負責人參考。<br>"+
-        "2. 目前網站頁面所回報的失聯狀況範圍包含：<br>"+
-            "a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404, 407)<br>"+
-            "b. 內部伺服器錯誤等 (500, 503)<br>"+
-            "c. 超過20秒未回應(-3)，或無法成功建立連結(-5)<br>"+
-    "其他需再做專業評估的例外情況，不包含於回報範圍。<br><br>"+
-    "任何問題，歡迎聯絡蘇益慧小姐#17234。<br></body></html>\" "+
-"--files \"output/"+request["title"]+"-"+start_time+".csv\"")
-                else:
-                    # TODO: File absolute path
-                    print("./Mail.py --tag "+config.tag+" --receiver "+request["mailto"]+" --ccreceiver "+request["mailcc"]+" "+
-"--subject \"請查收「"+request["title"]+"」失連報表，謝謝！\" "+
-"--content "+
-    "\"<html><style>body {font-family:Microsoft JhengHei;}</style><body>謝謝您使用ITRIWeb Broken Link Checker，您的網站失連之報表請參閱附件。<br><br>"+
-    "附加說明：<br>"+
-        "1. 所有回報皆透由系統掃瞄和記錄，僅能呈現測試當下網站實際狀況，供相關負責人參考。<br>"+
-        "2. 目前網站頁面所回報的失聯狀況範圍包含：<br>"+
-            "a. 請求網址被伺服器判定格式錯誤等(400,401, 403, 404, 407)<br>"+
-            "b. 內部伺服器錯誤等 (500, 503)<br>"+
-            "c. 超過20秒未回應(-3)，或無法成功建立連結(-5)<br>"+
-    "其他需再做專業評估的例外情況，不包含於回報範圍。<br><br>"+
-    "任何問題，歡迎聯絡蘇益慧小姐#17234。<br></body></html>\" "+
-"--files \"output/"+request["title"]+"-"+start_time+".csv\"")
-            else:
-                print(str(request["counter"])+" "+request["title"])
-                print("No output. ("+str(record)+")")
-                logger.warn(str(request["counter"])+" "+request["title"]+" "+request["url"]+" "+request["level"]+" "+request["mailto"]+" "+request["mailcc"]+" "+request["unit"]+" "+request["empno"]+" no sent OK")
-
         _record.close()
-
+		
     def run(self):
+        print("run")
         while not self.event.is_set():
             request = self.request_queue.get()
             if request is None:
                 break
-
-            if request["send_report"]:
+            #這段再看看是甚麼
+            """
+            if request["send_report"]: #if send_report = true
                 self.send_report_event.set()
                 self.status = 2
 
-                self.handler(request, self.config, self.threads, self.seperate, self.send_mail)
+                self.handler(request, self.config, self.threads, self.seperate)
 
                 self.status = 0
                 self.send_report_event.clear()
             else:
                 while self.send_report_event.is_set():
                     # TODO:
+                    print("sleep?")
                     time.sleep(self.config.timeout)
                     pass
-
+            
                 self.status = 1
+            """           
+            self.handler(request, self.config, self.threads, self.seperate)
 
-                self.handler(request, self.config, self.threads, self.seperate, self.send_mail)
-
-                self.status = 0
-
+            self.status = 0
+                    
+					
+					
 """
 Ctrl + C handler
 """
@@ -227,7 +161,7 @@ def error_code_description(record):
 """
 Argument init
 """
-def arg_initialize(argv):
+def arg_initialize(argv): #命令列說明
     parser = argparse.ArgumentParser(description="Start to running API server.")
     parser.add_argument("--threads", type=int, default=1, help="Specify number of worker threads. Default is 1.")
     parser.add_argument("--tag", help="Specify tag in the config.", default="APISERVER", required=True)
@@ -236,9 +170,9 @@ def arg_initialize(argv):
     seperate_group = parser.add_mutually_exclusive_group()
     seperate_group.add_argument("--onefile", default=False, dest="seperate", action="store_false", help="Default is onefile.")
     seperate_group.add_argument("--multifile", default=False, dest="seperate", action="store_true", help="Default is onefile.")
-    send_mail_group = parser.add_mutually_exclusive_group()
-    send_mail_group.add_argument("--sendmail", default=False, dest="send_mail", action="store_true", help="Default is not to send mail.")
-    send_mail_group.add_argument("--no-sendmail", default=False, dest="send_mail", action="store_false", help="Default is not to send mail.")
+    #send_mail_group = parser.add_mutually_exclusive_group()
+    #send_mail_group.add_argument("--sendmail", default=False, dest="send_mail", action="store_true", help="Default is not to send mail.")
+    #send_mail_group.add_argument("--no-sendmail", default=False, dest="send_mail", action="store_false", help="Default is not to send mail.")
 
     return parser.parse_args()
 
@@ -261,6 +195,7 @@ Initialize variable
 def initialize(args):
     global logger, request_queue, threads, event, num_of_worker_threads, counter
 
+    #print("initialize")
     signal.signal(signal.SIGINT, signal_handler)
     logger = log_initialize("logs/apiserver.log")
     request_queue = queue.Queue()
@@ -269,107 +204,55 @@ def initialize(args):
     send_report_event = threading.Event()
     num_of_worker_threads = args.threads
     counter = 0
-    conf = ConfigLoader.Config(config_path="config/.requests.conf", tag=args.tag)
+    conf = ConfigLoader.Config(filename="config/.requests.conf", tag=args.tag)
     conf.load_config()
     for i in range(0, num_of_worker_threads, 1):
-        thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate, args.send_mail)
+        thread = HTTPRequestHandler(i, str(i), threads, event, send_report_event, request_queue, conf, args.seperate)
         thread.start()
         threads.append(thread)
 
 @app.route("/")
 def api_root():
-    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&mailto=&mailcc=&unit=&level=&empno=<br>unit, mailto, mailcc, level, and empno are options."
+    return "Welcome~<br><br>You are now in "+url_for("api_root")+".<br>The following APIs are offered for you.<br><br>/exec?title=&url=&context=&timewarn=&systep_id=<br>title, url, context, timewarn, systep_id are options."
 
 @app.route("/exec")
 def exec():
     global counter, logger, thread, request_queue
-
+    #print("in")
     dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
     counter += 1
     if "title" in request.args and "url" in request.args:
-        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"])
+        #如果有寫title和url 填進log
+        logger.warn(str(counter)+" "+request.args["title"]+" "+request.args["url"]+" "+request.args["context"]+" "+request.args["timewarn"]+" "+request.args["systep_id"])
         pattern = "^http(s)?://"
-        if not re.match(pattern, request.args["url"]):
+        if not re.match(pattern, request.args["url"]): #網址要有http or https
             logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on url argument.")
-            return "Syntax error on url argument."
+            #還是繼續做 把錯誤寫進DB
+            #return "Syntax error on url argument." 
 
+        #抓參數值
         title = request.args["title"]
         url = request.args["url"]
-        unit = ""
-        mailto = ""
-        mailcc = ""
-        level = "0"
-        empno = ""
-
-        try:
-            unit = request.args["unit"]
-        except Exception as e:
-            #print(e)
-            pass
-
-        try:
-            pattern = "^(((.*?)@(.*?));)*$"
-            if not re.match(pattern, request.args["mailto"]):
-                logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailto argument.")
-                return "Syntax error on mailto argument."
-            mailto = request.args["mailto"].replace(";", " ")
-        except Exception as e:
-            #print(e)
-            pass
-
-        try:
-            pattern = "^(((.*?)@(.*?));)*$"
-            if not re.match(pattern, request.args["mailcc"]):
-                logger.warn(str(counter)+" "+request.args["title"]+": Syntax error on mailcc argument.")
-                return "Syntax error on mailcc argument."
-            mailcc = request.args["mailcc"].replace(";", " ")
-        except Exception as e:
-            #print(e)
-            pass
-
-        try:
-            level = str(int(request.args["level"]))
-        except Exception as e:
-            #print(e)
-            pass
-
-        try:
-            empno = request.args["empno"]
-        except Exception as e:
-            #print(e)
-            pass
-
-        request_queue.put({"counter": counter, "title": title, "url": url, "mailto": mailto, "mailcc": mailcc, "unit": unit, "level": level, "empno": empno, "datetime": dt, "send_report": False})
-
-        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"mailto\": "+mailto+", \"mailcc\": "+mailcc+", \"unit\": "+unit+", \"level\": "+level+", \"empno\": "+empno+"]"
+        context = request.args["context"]
+        timewarn = request.args["timewarn"]
+        systep_id = request.args["systep_id"]
+        #auth = request.args["auth"]
+        
+        if(url==""):
+            url="None"
+        #request_queue is key,把資料丟到queue待處理,handler()
+        request_queue.put({"counter": counter, "title": title, "url": url, "context": context, "timewarn": timewarn, "systep_id": systep_id, "datetime": dt})
+        data = "[\"title\": "+request.args["title"]+", \"url\": "+request.args["url"]+", \"context\": "+request.args["context"]+"]"+", \"timewarn\": "+request.args["timewarn"]+"]"+", \"systep_id\": "+request.args["systep_id"]+"]"
         return "We are working on it.<br>The followings are your input data: "+data
     else:
         logger.warn(str(counter)+" Something wrong happend. Check you have send whole parameters.")
-        return "Something wrong happend. Make sure that you have already send the total five arguments."
-
-@app.route("/send_report")
-def send_report():
-    global request_queue, logger
-
-    if "title" in request.args and "mailto" in request.args:
-        logger.warn("Sending Report "+request.args["title"]+" "+request.args["mailto"])
-        pattern = "^(((.*?)@(.*?));)+$"
-        if not re.match(pattern, request.args["mailto"]):
-            logger.warn("Sending Report "+request.args["title"]+": Syntax error on mailto argument.")
-            return "Syntax error on mailto argument."
-
-        title = request.args["title"]
-        mailto = request.args["mailto"].replace(";", " ")
-
-        request_queue.put({"title": title, "mailto": mailto, "send_report": True})
-
-    return "Put in process queue."
+         #還是繼續做 把錯誤寫進DB
+        #return "Something wrong happend. Make sure that you have already send the total five arguments."
 
 
 if __name__ == "__main__":
     # TODO: Come in request log(who use it), output mail log(See PPT), 
     argv = sys.argv
-
     args = arg_initialize(argv)
     initialize(args)
     app.run(host=args.ip, port=args.port)
