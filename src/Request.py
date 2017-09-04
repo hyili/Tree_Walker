@@ -49,76 +49,7 @@ class HTTPRequest(threading.Thread):
 
     def send_head_request(self, session, request):
         return True
-    """
-    def send_get_request(self, session, config, request, retries=0):
-        link_url = "" #current_url = ""
-        r = None
-        #print("send_get_request")
-        #print(config.timeout)
-        try:
-            if retries == 0:
-                start_time = datetime.datetime.now()
-            
-            url = Webdriver.run_webdriver(request["url"], request["timeout"], config.driver_location, config.follow_redirection, verify=config.verify)
-            r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=config.verify)
 
-            r.encoding = Functions.detect_encoding(r)
-            status_code = r.status_code
-            reason = r.reason
-            link_url=str(r.url)
-        #設定例外狀況的status_code
-        except requests.exceptions.HTTPError as e:
-            status_code = -2
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        except requests.exceptions.Timeout as e:
-            status_code = -3
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        except requests.exceptions.TooManyRedirects as e:
-            status_code = -4
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        except requests.exceptions.ConnectionError as e:
-            status_code = -5
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        except requests.exceptions.InvalidSchema as e:
-            status_code = -6
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        except Exception as e:
-            status_code = -7
-            reason = e
-            r = None
-            if (config.debug_mode):
-                print("Request: "+str(e))
-        finally:
-            if status_code in config.broken_link:
-                if retries < config.max_retries:
-                    if status_code in config.retry_code:
-                        #time.sleep(60)
-                        response = self.send_get_request(session=session, config=config, request=request, retries=retries+1)
-                        r = response
-            if retries == 0:
-                end_time = datetime.datetime.now()
-				#處理時間
-                time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
-
-                return {"link_url": request["url"], "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r}
-            else:
-                return r
-    """
     def run(self): 
         print("Request run")
         while not self.event.is_set():
@@ -176,20 +107,7 @@ def initialize(config, decode=None):
     #這段的目的是在?
 
     event = threading.Event()
-    """
-    if history[config.target_url]["status_code"] == 200:
-        #print("sss")
-        for i in range(0, num_of_worker_threads, 1):
-            new_session = copy.deepcopy(session)
-            sessions.append(new_session)
-            print("182")
-            print(GlobalVars.history_in_queue.qsize())
-            thread = HTTPRequest(i, str(i), event, new_session, config, GlobalVars.history_in_queue, GlobalVars.history_out_queue)
-            thread.start()
-            threads.append(thread)
-            #print("thread")
-            #print(thread)
-    """
+    
     return (session, history, source) 
 
 """
