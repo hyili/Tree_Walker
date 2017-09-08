@@ -55,10 +55,13 @@ def arg_initialize(argv):
 Parse function
 """
 def parse_funct(filename, config, logger):
-    (session, history, source, linktexts) = Request.initialize(config=config, decode="utf-8-sig")
-    if config.depth > 0:
+    history = {}
+    Request.initialize(config=config, decode="utf-8-sig")
+    if config.depth >= 0:
+        linktexts = []
+        linktexts.append((config.target_url, config.title))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
-    Output.file_generator(history=history, config=config, logger=logger, output_filename=filename)
+    Output.output_handler(history=history, config=config, logger=logger, output_filename=filename)
     Request.close()
 
 """

@@ -42,13 +42,12 @@ class Authenticate():
             url = Webdriver.run_webdriver(config.target_url, config.timeout, config.driver_location, config.follow_redirection, config.verify)
             r = self.session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
 
-            if config.auth:
-                if (re.search(config.auth_url_pattern, r.url)):
-                    r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
-                else:
-                    if config.debug_mode:
-                        print("It's only for ITRI Single Sign On lol~")
-                    quit()
+            if (re.search(config.auth_url_pattern, r.url)):
+                r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
+            else:
+                if config.debug_mode:
+                    print("It's only for ITRI Single Sign On lol~")
+                quit()
 
             if config.ssllab_verify:
                 ssl_grade = ssllabscanner.newScan(self.config.target_url)["endpoints"][0]["gradeTrustIgnored"]
@@ -59,38 +58,37 @@ class Authenticate():
         except requests.exceptions.HTTPError as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.Timeout as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.TooManyRedirects as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.ConnectionError as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.InvalidSchema as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         except Exception as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
             r = None
-            if (config.debug_mode):
+            if config.debug_mode:
                 print("Authenticate: "+str(e))
         finally:
             if self.history[config.target_url]["status_code"] in config.broken_link:
                 if retries < config.max_retries:
                     if self.history[config.target_url]["status_code"] in config.retry_code:
-                        config.auth = False
                         time.sleep(60)
                         response = self.authenticate(retries=retries+1)
                         r = response
@@ -107,7 +105,7 @@ Will be forwarded to another authentication page
 Then, login with payload information
 """
 def authenticate(session, config, decode=None):
-    GlobalVars.total_links += 1
+    #GlobalVars.total_links += 1
 
     auth = Authenticate(session, config, decode)
     response = auth.authenticate()
@@ -128,7 +126,8 @@ def authenticate(session, config, decode=None):
         del history[config.target_url]
     else:
         if history[config.target_url]["status_code"] not in config.filter_code:
-            GlobalVars.total_output_links += 1
+            #GlobalVars.total_output_links += 1
+            pass
 
     return ret_val
 
