@@ -22,6 +22,7 @@ class Config():
         self.default_config.sections()
 
 
+    # Function to load config, if option not exist in target tag, load from DEFAULT tag instead
     def load(self, config, tag, option, funct=None):
         try:
             result = config.get(tag, option)
@@ -40,11 +41,14 @@ class Config():
         else:
             return funct(result)
 
+    # Define what should load, and preprocess the config
     def load_config(self):
+        # Initialize ConfigParser module with self.config_path
         config = configparser.ConfigParser()
         config.read(self.config_path)
         config.sections()
 
+        # Specify the config that will load, and variable that will use
         _debug_mode = self.load(config, self.tag, "DEBUG_MODE")
         _auth = self.load(config, self.tag, "AUTH")
         _auth_url_pattern = self.load(config, self.tag, "AUTH_URL_PATTERN")
@@ -74,9 +78,9 @@ class Config():
         _ssllab_verify = self.load(config, self.tag, "SSLLAB_VERIFY_CERTIFICATE")
         _logpath = self.load(config, self.tag, "LOGPATH")
         _outputpath = self.load(config, self.tag, "OUTPUTPATH")
-        # TODO: Simple report
         _type_setting = self.load(config, self.tag, "TYPE_SETTING")
 
+        # Preprocess the loaded config
         if _debug_mode == "YES":
             self.debug_mode = True
         else:
@@ -132,3 +136,4 @@ class Config():
         self.logpath = _logpath
         self.outputpath = _outputpath
         self.type_setting = [int(i) for i in _type_setting.split(",")]
+        

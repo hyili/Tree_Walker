@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8-sig -*-
 
+# ***** #
+# This file is for functions that may be used in multiple places
+# ***** #
+
 import re
 import requests
 import html.parser
