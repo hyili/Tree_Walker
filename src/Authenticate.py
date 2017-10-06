@@ -53,7 +53,7 @@ class Authenticate():
             else:
                 if config.debug_mode:
                     print("It's only for ITRI Single Sign On lol~")
-                quit()
+                exit(0)
 
             # Using ssllab api to verify and test certificate
             if config.ssllab_verify:

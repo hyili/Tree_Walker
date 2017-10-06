@@ -221,7 +221,7 @@ def signal_handler(signal, frame):
     print("Got it!")
     close()
     print("Ready to quit!")
-    quit()
+    exit(0)
 
 """
 Navigate into the target website
@@ -290,7 +290,7 @@ def navigate(linktexts, config, depth=0, history={}, decode=None):
     # Single thread version
     else:
         print("Single thread deprecated. Using multithread instead.")
-        quit()
+        exit(0)
 
     # Check if recursive depth is reached the maximum depth
     if config.depth == depth:

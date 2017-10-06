@@ -205,7 +205,7 @@ def db_handler():
 """
 Output handler using specified format
 """
-def output_handler(history, logger, config, output_filename):
+def output_handler(history, config, output_filename):
     # Prevent directory issue
     output_filename = output_filename.replace("/", " ")
 
@@ -213,9 +213,9 @@ def output_handler(history, logger, config, output_filename):
     if GlobalVars.total_output_links > 0:
         # Record to log
         if "XML" in config.output_format:
-            logger.warn("["+config.tag+"] filter_code: {"+str(config.filter_code)+"}, print_depth: {"+str(config.print_depth)+"} Generating "+output_filename+".xml ...")
+            pass
         elif "CSV" in config.output_format:
-            logger.warn("["+config.tag+"] filter_code: {"+str(config.filter_code)+"}, print_depth: {"+str(config.print_depth)+"} Generating "+output_filename+".csv ...")
+            pass
 
     if "XML" in config.output_format:
         # Out-of-date

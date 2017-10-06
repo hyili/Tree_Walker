@@ -2,7 +2,6 @@
 # -*- coding: utf-8-sig -*-
 
 import sys
-import logging
 import argparse
 
 import context
@@ -10,20 +9,6 @@ import Request
 import Output
 import ConfigLoader
 from tool import Functions
-
-"""
-Logger init
-"""
-def log_initialize(logpath):
-    logger = logging.getLogger("main")
-    logger.setLevel(logging.WARNING)
-    file_handler = logging.FileHandler(logpath+"/main.log")
-    file_handler.setLevel(logging.WARNING)
-    # TODO: adjust logger
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    return logger
 
 """
 Argument init
@@ -54,26 +39,26 @@ def arg_initialize(argv):
 """
 Parse function
 """
-def parse_funct(filename, config, logger):
+def parse_funct(filename, config):
     history = {}
     Request.initialize(config=config, decode="utf-8-sig")
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.title))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
-    Output.output_handler(history=history, config=config, logger=logger, output_filename=filename)
+    Output.output_handler(history=history, config=config, output_filename=filename)
     Request.close()
 
 """
 Round function
 """
 def round_funct(args):
+    # Retain these two
     if args.subparser_name == "config":
         for tag in args.tags[0:]:
             config = ConfigLoader.Config(config_path="config/.requests.conf", tag=tag)
             config.load_config()
-            logger = log_initialize(config.logpath)
-            parse_funct(tag, config, logger)
+            parse_funct(tag, config)
     elif args.subparser_name == "commandline":
         filename = args.filename
         config = ConfigLoader.Config(config_path="config/.requests.conf", tag=args.tag)
@@ -93,8 +78,7 @@ def round_funct(args):
         if args.depth >= 0:
             config.depth = args.depth
 
-        logger = log_initialize(config.logpath)
-        parse_funct(filename, config, logger)
+        parse_funct(filename, config)
 
 """
 """
@@ -108,4 +92,4 @@ Main function
 """
 if __name__ == "__main__":
     main()
-    quit()
+    exit(0)

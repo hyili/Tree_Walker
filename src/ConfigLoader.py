@@ -28,13 +28,13 @@ class Config():
             result = config.get(tag, option)
         except configparser.NoSectionError as e:
             print(e)
-            quit()
+            exit(0)
         except:
             try:
                 result = self.default_config.get("DEFAULT", option)
             except Exception as e:
                 print(e)
-                quit()
+                exit(0)
 
         if funct is None:
             return result
