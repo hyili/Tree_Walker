@@ -29,6 +29,7 @@ from tool import History
 Requests TLS Adapter
 """
 class TLSAdapter(HTTPAdapter):
+    # Deprecated
     def init_poolmanager(self, connections, maxsize, block=False):
         self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize, block=block, ssl_version=ssl.PROTOCOL_TLSv1)
 
@@ -157,7 +158,7 @@ def initialize(config, decode=None):
 
     requests.packages.urllib3.disable_warnings()
     session = requests.Session()
-    session.mount("https://", TLSAdapter())
+    #session.mount("https://", TLSAdapter())
     sessions.append(session)
     (source, history) = Authenticate.authenticate(session=session, config=config, decode=decode)
     linktexts = Functions.find_linktexts(source=source)
