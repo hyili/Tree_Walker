@@ -8,6 +8,7 @@ import context
 import Request
 import Output
 import ConfigLoader
+import GlobalVars
 from tool import Functions
 
 """
@@ -30,6 +31,7 @@ def arg_initialize(argv):
     redirect_group.add_argument("--redirect", default=None, dest="redirect", action="store_true")
     redirect_group.add_argument("--no-redirect", default=None, dest="redirect", action="store_false")
     commandline_subparser.add_argument("--filename", default="commandline", help="Specify output filename.")
+    commandline_subparser.add_argument("--config", default="config/.requests.conf", help="Specify the config file.")
     commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
     commandline_subparser.add_argument("--unit", default="", help="Specify parsing admin unit.")
@@ -50,46 +52,53 @@ def parse_funct(filename, config):
     Request.close()
 
 """
-Round function
+Handler
 """
-def round_funct(args):
-    # Retain these two
-    if args.subparser_name == "config":
-        for tag in args.tags[0:]:
-            config = ConfigLoader.Config(config_path="config/.requests.conf", tag=tag)
+def handler(args=None):
+    # Enter from commandline
+    if args is not None:
+        # Load configuration from config file
+        # Example: ./Main.py config DEFAULT
+        if args.subparser_name == "config":
+            for tag in args.tags[0:]:
+                config = ConfigLoader.FileConfig(tag=tag, config_path=GlobalVars.DEFAULT_CONFIG_PATH)
+                config.load_config()
+                parse_funct(tag, config)
+
+        # Load configuration from commandline
+        # Example: ./Main.py commandline --url https://hyili.idv.tw --depth 0
+        elif args.subparser_name == "commandline":
+            config = ConfigLoader.FileConfig(tag=args.tag, config_path=args.config)
             config.load_config()
-            parse_funct(tag, config)
-    elif args.subparser_name == "commandline":
-        filename = args.filename
-        config = ConfigLoader.Config(config_path="config/.requests.conf", tag=args.tag)
-        config.load_config()
 
-        if args.verify is not None:
-            config.verify = args.verify
-        if args.redirect is not None:
-            config.follow_redirection = args.redirect
-        config.title = args.title
-        config.email = args.email
-        config.unit = args.unit
-        config.target_url = Functions.factor_url(args.url, "")
-        config.current_url = Functions.factor_url(args.url, "")
-        config.domain_url = Functions.pattern_generator(args.url)
+            config.verify = args.verify if args.verify is not None else config.verify
+            config.follow_redirection = args.redirect if args.redirect is not None else config.follow_redirection
+            config.title = args.title
+            config.email = args.email
+            config.unit = args.unit
+            config.target_url = Functions.factor_url(args.url, "")
+            config.current_url = Functions.factor_url(args.url, "")
+            config.domain_url = Functions.pattern_generator(args.url)
 
-        if args.depth >= 0:
-            config.depth = args.depth
+            if args.depth >= 0:
+                config.depth = args.depth
 
-        parse_funct(filename, config)
+            parse_funct(args.filename, config)
 
-"""
-"""
-def main():
-    argv = sys.argv
-    args = arg_initialize(argv)
-    round_funct(args)
+    # Enter from function call
+    # Load configuration from MSSQL database
+    # TODO: 
+    else:
+       config = ConfigLoader.MSSQLConfig(tag=GlobalVars.DEFAULT_DB_CONFIG_TAG, config_path=GlobalVars.DEFAULT_DB_CONFIG_PATH)
 
 """
 Main function
 """
+def main():
+    argv = sys.argv
+    args = arg_initialize(argv)
+    handler(args)
+
 if __name__ == "__main__":
     main()
     exit(0)

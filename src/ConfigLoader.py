@@ -3,82 +3,57 @@
 
 import configparser
 
+import GlobalVars
+import RequestException
+from DB import MSSQLDB
 from tool import Functions
 
 """
 Config class
 """
 class Config():
-    def __init__(self, tag, config_path, default_config_path="config/.requests.conf.default"):
-        self.tag = tag
-        self.default_config_path = default_config_path
-        self.config_path = config_path
+    def __init__(self):
         self.title = ""
         self.email = ""
         self.unit = ""
 
-        self.default_config = configparser.ConfigParser()
-        self.default_config.read(self.default_config_path)
-        self.default_config.sections()
-
-
-    # Function to load config, if option not exist in target tag, load from DEFAULT tag instead
-    def load(self, config, tag, option, funct=None):
-        try:
-            result = config.get(tag, option)
-        except configparser.NoSectionError as e:
-            print(e)
-            exit(0)
-        except:
-            try:
-                result = self.default_config.get("DEFAULT", option)
-            except Exception as e:
-                print(e)
-                exit(0)
-
-        if funct is None:
-            return result
-        else:
-            return funct(result)
+    # Wait for subclass implement
+    def load():
+        return None
 
     # Define what should load, and preprocess the config
     def load_config(self):
-        # Initialize ConfigParser module with self.config_path
-        config = configparser.ConfigParser()
-        config.read(self.config_path)
-        config.sections()
-
         # Specify the config that will load, and variable that will use
-        _debug_mode = self.load(config, self.tag, "DEBUG_MODE")
-        _auth = self.load(config, self.tag, "AUTH")
-        _auth_url_pattern = self.load(config, self.tag, "AUTH_URL_PATTERN")
-        _admin_email = self.load(config, self.tag, "ADMIN_EMAIL")
-        _multithread = self.load(config, self.tag, "MULTITHREAD")
-        _threshold = self.load(config, self.tag, "THRESHOLD", int)
-        _print_depth = self.load(config, self.tag, "PRINT_DEPTH")
-        _target_url = self.load(config, self.tag, "TARGET_URL")
+        _debug_mode = self.load("DEBUG_MODE")
+        _auth = self.load("AUTH")
+        _auth_url_pattern = self.load("AUTH_URL_PATTERN")
+        _admin_email = self.load("ADMIN_EMAIL")
+        _multithread = self.load("MULTITHREAD")
+        _threshold = self.load("THRESHOLD", int)
+        _print_depth = self.load("PRINT_DEPTH")
+        _target_url = self.load("TARGET_URL")
         _current_url = _target_url
-        _user = self.load(config, self.tag, "USER")
-        _password = self.load(config, self.tag, "PASS")
+        _user = self.load("USER")
+        _password = self.load("PASS")
         _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
-        _depth = self.load(config, self.tag, "DEPTH", int)
-        _timeout = self.load(config, self.tag, "TIMEOUT", int)
-        _domain_url = self.load(config, self.tag, "DOMAIN_URL", Functions.pattern_generator)
-        _filter_code = self.load(config, self.tag, "FILTER")
-        _ignore_code = self.load(config, self.tag, "IGNORE")
-        _retry_code = self.load(config, self.tag, "RETRY")
-        _broken_link = self.load(config, self.tag, "BROKEN_LINK")
-        _max_retries = self.load(config, self.tag, "MAX_RETRIES", int)
-        _output_format = self.load(config, self.tag, "FORMAT")
-        _group_parent_url = self.load(config, self.tag, "GROUP_PARENT_URL")
-        _sort = self.load(config, self.tag, "SORT")
-        _follow_redirection = self.load(config, self.tag, "FOLLOW_REDIRECTION")
-        _driver_location = self.load(config, self.tag, "DRIVER_LOCATION")
-        _verify = self.load(config, self.tag, "VERIFY_CERTIFICATE")
-        _ssllab_verify = self.load(config, self.tag, "SSLLAB_VERIFY_CERTIFICATE")
-        _logpath = self.load(config, self.tag, "LOGPATH")
-        _outputpath = self.load(config, self.tag, "OUTPUTPATH")
-        _type_setting = self.load(config, self.tag, "TYPE_SETTING")
+        _depth = self.load("DEPTH", int)
+        _timeout = self.load("TIMEOUT", int)
+        _domain_url = self.load("DOMAIN_URL", Functions.pattern_generator)
+        _filter_code = self.load("FILTER")
+        _ignore_code = self.load("IGNORE")
+        _retry_code = self.load("RETRY")
+        _broken_link = self.load("BROKEN_LINK")
+        _max_retries = self.load("MAX_RETRIES", int)
+        _output_format = self.load("FORMAT")
+        _group_parent_url = self.load("GROUP_PARENT_URL")
+        _sort = self.load("SORT")
+        _follow_redirection = self.load("FOLLOW_REDIRECTION")
+        _driver_location = self.load("DRIVER_LOCATION")
+        _verify = self.load("VERIFY_CERTIFICATE")
+        _ssllab_verify = self.load("SSLLAB_VERIFY_CERTIFICATE")
+        _logpath = self.load("LOGPATH")
+        _outputpath = self.load("OUTPUTPATH")
+        _type_setting = self.load("TYPE_SETTING")
 
         # Preprocess the loaded config
         if _debug_mode == "YES":
@@ -136,4 +111,75 @@ class Config():
         self.logpath = _logpath
         self.outputpath = _outputpath
         self.type_setting = [int(i) for i in _type_setting.split(",")]
+
+class FileConfig(Config):
+    def __init__(self, tag, config_path, default_config_path="config/.requests.conf.default"):
+        self.tag = tag
+        self.default_config_path = default_config_path
+        self.config_path = config_path
+
+        try:
+            self.default_config = configparser.ConfigParser()
+            self.default_config.read(self.default_config_path)
+            self.default_config.sections()
+        except Exception as e:
+            raise RequestException.FileException("""Some error occurred when reading from default config.
+                    Path: %s
+                    Tag: %s
+                    Reason: %s""" % (self.default_config_path, self.tag, str(e)))
         
+        try:
+            self.config = configparser.ConfigParser()
+            self.config.read(self.config_path)
+            self.config.sections()
+        except Exception as e:
+            raise RequestException.FileException("""Some error occurred when reading from config.
+                    Path: %s
+                    Tag: %s
+                    Reason: %s""" % (self.config_path, self.tag, str(e)))
+
+    # Function to load config, if option not exist in target tag, load from DEFAULT tag instead
+    def load(self, option, funct=None):
+        try:
+            result = self.config.get(self.tag, option)
+        except configparser.NoSectionError as e:
+            raise RequestException.FileException("""Some error occurred when reading from config.
+                    Path: %s
+                    Tag: %s
+                    Reason: %s""" % (self.config_path, self.tag, str(e)))
+        except:
+            try:
+                result = self.default_config.get(GlobalVars.DEFAULT_CONFIG_TAG, option)
+            except Exception as e:
+                raise RequestException.FileException("""Some error occurred when reading from config.
+                        Path: %s
+                        Tag: %s
+                        Reason: %s""" % (self.config_path, self.tag, str(e)))
+
+        if funct is None:
+            return result
+        else:
+            return funct(result)
+
+class MSSQLConfig(MSSQLDB, Config):
+    def __init__(self, tag, config_path):
+        # Call class MSSQLDB, no Config
+        super().__init__(tag, config_path)
+        self.config = None
+
+    # Wait account & password (see it on server)
+    def load(self, name, funct=None):
+        # Fetch config data at first time
+        if self.config == None:
+            # TODO: how to get config
+            sql = "SELECT *"
+            self.cursor.execute(sql)
+            self.config = self.cursor.fetchone()
+        
+        # Get the target config with name
+        result = self.config[name]
+
+        if funct is None:
+            return result
+        else:
+            return funct(result)

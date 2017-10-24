@@ -6,6 +6,7 @@ import csv
 import datetime
 from lxml import etree
 
+import DB
 import GlobalVars
 
 """
@@ -199,8 +200,10 @@ def stdout_generator(history, config):
 """
 DB Handler
 """
-def db_handler():
-    pass
+def db_handler(history, config):
+    # Construct DB connection
+    # TODO:
+    mssqldb = DB.MSSQLDB(config.tag, GlobalVars.DEFAULT_DB_CONFIG_PATH)
 
 """
 Output handler using specified format
@@ -211,26 +214,20 @@ def output_handler(history, config, output_filename):
 
     # If generate output file is needed
     if GlobalVars.total_output_links > 0:
-        # Record to log
         if "XML" in config.output_format:
-            pass
-        elif "CSV" in config.output_format:
-            pass
+            # Out-of-date
+            xml_generator(history, config, output_filename)
 
-    if "XML" in config.output_format:
-        # Out-of-date
-        xml_generator(history, config, output_filename)
+        if "CSV" in config.output_format:
+            csv_generator(history, config, output_filename)
 
-    if "CSV" in config.output_format:
-        csv_generator(history, config, output_filename)
+        if "JSON" in config.output_format:
+            # Not implement yet
+            json_generator()
 
-    if "JSON" in config.output_format:
-        # Not implement yet
-        json_generator()
+        if "STDOUT" in config.output_format:
+            stdout_generator(history, config)
 
-    if "STDOUT" in config.output_format:
-        stdout_generator(history, config)
-
-    if "DB" in config.output_format:
-        # Not implement yet
-        db_handler()
+        if "DB" in config.output_format:
+            # Not implement yet
+            db_handler(history, config)

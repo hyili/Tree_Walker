@@ -11,7 +11,6 @@ import threading
 import context
 import Worker
 import Request
-import ConfigLoader
 import Route
 
 class APIServer():
@@ -26,7 +25,6 @@ class APIServer():
         self.request_queue = queue.Queue()
         self.threads = []
         self.event = threading.Event()
-        self.send_report_event = threading.Event()
 
         # Setup Flask with Route
         self.app = Route.initialize(self.counter, self.request_queue)
@@ -34,7 +32,7 @@ class APIServer():
         # Create worker thread
         self.num_of_worker_threads = threads
         for i in range(0, self.num_of_worker_threads, 1):
-            thread = Worker.HTTPRequestHandler(i, str(i), self.threads, self.event, self.send_report_event, self.request_queue)
+            thread = Worker.HTTPRequestHandler(i, str(i), self.threads, self.event, self.request_queue)
             thread.start()
             self.threads.append(thread)
 
@@ -43,6 +41,8 @@ class APIServer():
         for i in range(0, self.num_of_worker_threads, 1):
             self.request_queue.put(None)
         self.event.set()
+
+        print("Waiting for worker join!")
         for thread in self.threads:
             thread.join()
 
