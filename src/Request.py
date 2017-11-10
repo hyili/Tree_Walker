@@ -18,8 +18,8 @@ import threading
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
-import GlobalVars
 import Authenticate
+from tool import GlobalVars
 from tool import Webdriver
 from tool import Functions
 from tool import History
@@ -155,9 +155,6 @@ Initialize variable
 """
 def initialize(config, decode=None):
     global threads, event, sessions, num_of_worker_threads
-
-    # Signal handler
-    signal.signal(signal.SIGINT, signal_handler)
 
     # Global variables initialize
     GlobalVars.total_links = 0

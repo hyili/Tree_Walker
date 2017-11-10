@@ -21,5 +21,7 @@ history_in_queue = None
 
 DEFAULT_CONFIG_TAG = "DEFAULT"
 DEFAULT_CONFIG_PATH = "config/.requests.conf"
+DEFAULT_DEFAULT_CONFIG_PATH = "config/.requests.conf.default"
 DEFAULT_DB_CONFIG_TAG = "MSSQL"
 DEFAULT_DB_CONFIG_PATH = "config/.db.conf"
+DEFAULT_DEFAULT_DB_CONFIG_PATH = "config/.db.conf.default"

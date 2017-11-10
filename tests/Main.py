@@ -2,13 +2,14 @@
 # -*- coding: utf-8-sig -*-
 
 import sys
+import signal
 import argparse
 
 import context
+import ConfigLoader
 import Request
 import Output
-import ConfigLoader
-import GlobalVars
+from tool import GlobalVars
 from tool import Functions
 
 """
@@ -41,34 +42,50 @@ def arg_initialize(argv):
 """
 Parse function
 """
-def parse_funct(filename, config):
+def parse_funct(filename, config, db_handler):
     history = {}
     Request.initialize(config=config, decode="utf-8-sig")
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.title))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
-    Output.output_handler(history=history, config=config, output_filename=filename)
+    Output.output_handler(history=history, config=config, output_filename=filename, db_handler=db_handler)
     Request.close()
 
 """
 Handler
+- args for commandline input arguments, function call won't have this
 """
-def handler(args=None):
+def handler(configloader, configargs=None, args=None, db_handler=None):
+    # Signal handler
+    try:
+        signal.signal(signal.SIGINT, Request.signal_handler)
+    # Do nothing in main thread
+    except:
+        pass
+
+    # Enter from function call
+    # Load configuration from self-defined DB configloader
+    if args is None:
+        # configargs for APIServer input index
+        config = configloader(tag=GlobalVars.DEFAULT_DB_CONFIG_TAG, config_path=GlobalVars.DEFAULT_DB_CONFIG_PATH, args=configargs)
+        config.load_config()
+        parse_funct("APIServer-Tests", config, db_handler)
+
     # Enter from commandline
-    if args is not None:
+    elif args is not None:
         # Load configuration from config file
         # Example: ./Main.py config DEFAULT
         if args.subparser_name == "config":
             for tag in args.tags[0:]:
-                config = ConfigLoader.FileConfig(tag=tag, config_path=GlobalVars.DEFAULT_CONFIG_PATH)
+                config = configloader(tag=tag, config_path=GlobalVars.DEFAULT_CONFIG_PATH)
                 config.load_config()
-                parse_funct(tag, config)
+                parse_funct(tag, config, db_handler)
 
         # Load configuration from commandline
         # Example: ./Main.py commandline --url https://hyili.idv.tw --depth 0
         elif args.subparser_name == "commandline":
-            config = ConfigLoader.FileConfig(tag=args.tag, config_path=args.config)
+            config = configloader(tag=args.tag, config_path=args.config)
             config.load_config()
 
             config.verify = args.verify if args.verify is not None else config.verify
@@ -83,13 +100,7 @@ def handler(args=None):
             if args.depth >= 0:
                 config.depth = args.depth
 
-            parse_funct(args.filename, config)
-
-    # Enter from function call
-    # Load configuration from MSSQL database
-    # TODO: 
-    else:
-       config = ConfigLoader.MSSQLConfig(tag=GlobalVars.DEFAULT_DB_CONFIG_TAG, config_path=GlobalVars.DEFAULT_DB_CONFIG_PATH)
+            parse_funct(args.filename, config, db_handler)
 
 """
 Main function
@@ -97,7 +108,7 @@ Main function
 def main():
     argv = sys.argv
     args = arg_initialize(argv)
-    handler(args)
+    handler(configloader=ConfigLoader.FileConfig, args=args)
 
 if __name__ == "__main__":
     main()

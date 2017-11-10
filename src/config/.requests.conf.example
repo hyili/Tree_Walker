@@ -4,63 +4,63 @@
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 [COMMANDLINE]
-DEBUG_MODE=NO
+debug_mode=no
 # The user is set for web login
-USER=username
-PASS=password
-# Set YES to allow authentication
-AUTH=NO
-DEPTH=0
-FILTER=0
-MAX_RETRIES=0
-FORMAT=STDOUT
+sso_id=username
+sso_passwd=password
+# Set yes to allow authentication
+is_intra=no
+search_level=0
+filter=0
+max_retries=0
+output_format=STDOUT
 
 
 [APISERVER]
 # The user is set for report sending
-USER=username
-PASS=password
-AUTH=NO
-FOLLOW_REDIRECTION=YES
-VERIFY_CERTIFICATE=NO
-SSLLAB_VERIFY_CERTIFICATE=NO
-DEPTH=0
-TIMEOUT=20
-MAX_RETRIES=5
-PRINT_DEPTH=0
-THRESHOLD=3
-FILTER=200
-FORMAT=CSV,STDOUT
+sso_id=username
+sso_passwd=password
+is_intra=no
+follow_redirection=yes
+verify_certificate=no
+ssllab_verify_certificate=no
+search_level=0
+timeout=20
+max_retries=5
+report_level=0
+threshold=3
+filter=200
+output_format=CSV,STDOUT,DB
 
 [APISERVER-WEB-BACKEND]
 # The user is set for report sending
-USER=username
-PASS=password
-AUTH=NO
-FOLLOW_REDIRECTION=NO
-VERIFY_CERTIFICATE=NO
-SSLLAB_VERIFY_CERTIFICATE=NO
-DEPTH=0
-TIMEOUT=20
-MAX_RETRIES=1
-PRINT_DEPTH=0,1,2,3,4,5
-THRESHOLD=3
+sso_id=username
+sso_passwd=password
+is_intra=no
+follow_redirection=no
+verify_certificate=no
+ssllab_verify_certificate=no
+search_level=0
+timeout=20
+max_retries=0
+report_level=0,1,2,3,4,5
+threshold=3
 # Do not show on report if status is listed below
-FILTER=200,-7
-FORMAT=CSV,STDOUT
+filter=200,-7
+output_format=CSV,STDOUT
 # Let the system always sends mail, regard 200 as broken link
-BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
-TYPE_SETTING=1,2,3,4,8,12,13,14,15,16
+broken_link=200,400,401,403,404,500,503,-3,-5
+type_setting=1,2,3,4,8,12,13,14,15,16
 
 [WEBCHECK]
-USER=username
-PASS=password
-AUTH=YES
-VERIFY_CERTIFICATE=NO
-SSLLAB_VERIFY_CERTIFICATE=NO
-DEPTH=0
-TIMEOUT=20
-FILTER=0
-FORMAT=CSV,STDOUT
-TARGET_URL=https://webcheck.itri.org.tw/webstatus.aspx
-DOMAIN_URL=https://webcheck.itri.org.tw/webstatus.aspx
+sso_id=username
+sso_passwd=password
+is_intra=yes
+verify_certificate=no
+ssllab_verify_certificate=no
+search_level=0
+timeout=20
+filter=0
+output_format=CSV,STDOUT
+target_url=https://webcheck.itri.org.tw/webstatus.aspx
+search_domain=https://webcheck.itri.org.tw/webstatus.aspx

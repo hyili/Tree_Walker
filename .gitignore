@@ -1,3 +1,4 @@
 src/config/.requests.conf
+src/config/.db.conf
 __pycache__
 *\.un~

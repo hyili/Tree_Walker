@@ -6,8 +6,8 @@ import time
 import datetime
 import requests
 
-import GlobalVars
 from tool.ssllab import ssllabsscanner as ssllabscanner
+from tool import GlobalVars
 from tool import History
 from tool import Webdriver
 from tool import Functions

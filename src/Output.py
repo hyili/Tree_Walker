@@ -6,8 +6,8 @@ import csv
 import datetime
 from lxml import etree
 
-import DB
-import GlobalVars
+from tool import GlobalVars
+from tool import RequestException
 
 """
 XML Generator
@@ -198,17 +198,9 @@ def stdout_generator(history, config):
     print("\n"+str(history[config.target_url]["status_code"]))
 
 """
-DB Handler
-"""
-def db_handler(history, config):
-    # Construct DB connection
-    # TODO:
-    mssqldb = DB.MSSQLDB(config.tag, GlobalVars.DEFAULT_DB_CONFIG_PATH)
-
-"""
 Output handler using specified format
 """
-def output_handler(history, config, output_filename):
+def output_handler(history, config, output_filename, db_handler):
     # Prevent directory issue
     output_filename = output_filename.replace("/", " ")
 
@@ -229,5 +221,10 @@ def output_handler(history, config, output_filename):
             stdout_generator(history, config)
 
         if "DB" in config.output_format:
-            # Not implement yet
-            db_handler(history, config)
+            # TODO: Not implement yet
+            try:
+                db_handler(history, config)
+            except Exception as e:
+                raise RequestException.NotImplementException("""The function called is undefined. 
+                        Reason: %s""" % (str(e)))
+

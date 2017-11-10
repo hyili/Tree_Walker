@@ -5,237 +5,101 @@
 # --------------------------------------------------------------------------------------- #
 [DEFAULT]
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# Open Debug Mode                                                                         #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-DEBUG_MODE=NO
+#TODO: DB
+#DEBUG_MODE=NO
+debug_mode=NO
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# USER={username}                                                                         #
-#                                                                                         #
-# The ITRI username for logining SSO                                                      #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-USER=username
+sso_id=single-sign-on_id
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# PASS={password}                                                                         #
-#                                                                                         #
-# The ITRI password for logining SSO                                                      #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-PASS=password
+sso_passwd=single-sign-on_password
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# DEPTH={number}                                                                          #
-#                                                                                         #
-# To define the depth to search                                                           #
-#     0: only for testing authentication page and TARGET_URL available or not             #
-#     1: Testing availability the TARGET_URL and the url it contained                     #
-#     2~: And so on                                                                       #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-DEPTH=1
-PRINT_DEPTH=0
+#DEPTH=1
+search_level=0
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# TIMEOUT={number}                                                                        #
-#                                                                                         #
-# The time limitation of each request                                                     #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-TIMEOUT=5
+#TODO: DB
+#PRINT_DEPTH=0
+report_level=0
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# MULTITHREAD=YES|NO                                                                      #
-#                                                                                         #
-# To enable/disable multithread for running this script                                   #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-MULTITHREAD=YES
+#TIMEOUT=5
+timeout=5
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# THRESHOLD={number}                                                                      #
-#                                                                                         #
-# To set the threshold of concurrent request number                                       #
-# The higher this value is the fast the script runs, but it may result in web server's    #
-# heavy loading, and the possibility to be regarded as DoS attack                         #
-# Maximum value of this can not be greater than 1000                                      #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-THRESHOLD=1
+#TODO: DB
+#MULTITHREAD=YES
+multithread=yes
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# AUTH=YES|NO                                                                             #
-#                                                                                         #
-# To enable/disable login authentication for ITRI SSO                                     #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-AUTH=NO
+#THRESHOLD=1
+threshold=1
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# AUTH_URL_PATTERN=URL_PATTERN                                                            #
-#                                                                                         #
-# Specify some sso auth url pattern                                                       #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-AUTH_URL_PATTERN=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
+#AUTH=NO
+is_intra=no
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# ADMIN_EMAIL={one,two,three}                                                             #
-#                                                                                         #
-# To email the result to the administrator                                                #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-ADMIN_EMAIL=hyili@itri.org.tw
+#TODO: DB
+#AUTH_URL_PATTERN=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
+sso_url=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# TARGET_URL={url}                                                                        #
-#                                                                                         #
-# To define the started url of the program                                                #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-TARGET_URL=https://itriweb.itri.org.tw
+#TODO: DB
+#ADMIN_EMAIL=hyili@itri.org.tw
+admin_email=hyili@itri.org.tw
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# DOMAIN_URL={url}                                                                        #
-#                                                                                         #
-# To define the target domain or url that you want to test                                #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-DOMAIN_URL=itriweb.itri.org.tw
+#TARGET_URL=https://itriweb.itri.org.tw
+target_url=https://itriweb.itri.org.tw
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# FILTER={one,two,three...}                                                               #
-#                                                                                         #
-# Using this option to specify which result is no need to output to output file           #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-FILTER=200,403
+#DOMAIN_URL=itriweb.itri.org.tw
+search_domain=itriweb.itri.org.tw
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# IGNORE={one,two,three...}                                                               #
-#                                                                                         #
-# Using this option to specify which result is no need to handle it                       #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-IGNORE=-6
+#TODO: DB
+#FILTER=200,403
+filter=403
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# RETRY={one,two,three...}                                                                #
-#                                                                                         #
-# Using this option to specify which result need to perform a retry                       #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-RETRY=-3,-5
+#TODO: DB
+#IGNORE=-6
+ignore=-6
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# BROKEN_LINK={one,two,three...}                                                          #
-#                                                                                         #
-# Describe the status code that was regarded as broken link                               #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-BROKEN_LINK=400,401,403,404,500,503,-3,-5
+#TODO: DB
+#RETRY=-3,-5
+retry=-3,-5
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# MAX_RETRIES={number}                                                                    #
-#                                                                                         #
-# How many times to retry, when a broken link candidate shows up                          #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-MAX_RETRIES=0
+#TODO: DB
+#MAX_RETRIES=0
+max_retries=0
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# FORMAT={one,two,three...}                                                               #
-#                                                                                         #
-# Define the output file format, currently XML, CSV, STDOUT available                     #
-# JSON is not implemented yet                                                             #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-FORMAT=CSV
+#TODO: DB
+#BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
+search_status=200,400,401,403,404,500,503,-3,-5
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# GROUP_PARENT_URL=YES|NO                                                                 #
-#                                                                                         #
-# Set YES to group up parent_url                                                          #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-GROUP_PARENT_URL=NO
+#TODO: DB
+#FORMAT=STDOUT
+output_format=STDOUT,DB
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# SORT=STATUS_CODE|URL                                                                    #
-#                                                                                         #
-# The data sorting index                                                                  #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-SORT=STATUS_CODE
+#TODO: DB
+#GROUP_PARENT_URL=NO
+group_parent_url=no
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# FOLLOW_REDIRECTION=YES|NO                                                               #
-#                                                                                         #
-# Using webdriver to execute the webpage                                                  #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-FOLLOW_REDIRECTION=NO
+#SORT=STATUS_CODE
+report_sort=STATUS_CODE
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# DRIVER_LOCATION={path to phantomjs}                                                     #
-#                                                                                         #
-# Specify the location of webdriver                                                       #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-DRIVER_LOCATION=/usr/local/bin/phantomjs
+#FOLLOW_REDIRECTION=NO
+follow_redirection=no
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# VERIFY_CERTIFICATE=YES|NO                                                               #
-#                                                                                         #
-# Verify sites' certificate                                                               #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-VERIFY_CERTIFICATE=NO
-SSLLAB_VERIFY_CERTIFICATE=NO
+#TODO: DB
+#DRIVER_LOCATION=/usr/local/bin/phantomjs
+driver_location=/usr/local/bin/phantomjs
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# LOGPATH={path to store log file}                                                        #
-#                                                                                         #
-# Specify where to store the log file                                                     #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-LOGPATH=logs/
+#TODO: DB
+#VERIFY_CERTIFICATE=NO
+verify_certificate=no
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# OUTPUTPATH={path to store output file}                                                  #
-#                                                                                         #
-# Specify where to store the output file                                                  #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-OUTPUTPATH=output/
+#TODO: DB
+#SSLLAB_VERIFY_CERTIFICATE=NO
+ssllab_verify_certificate=no
+
+#TODO: DB
+#LOGPATH=logs/
+logpath=logs/
+
+#TODO: DB
+#OUTPUTPATH=output/
+outputpath=output/
 
 # --------------------------------------------------------------------------------------- #
 #                                                                                         #
@@ -259,4 +123,6 @@ OUTPUTPATH=output/
 # 16. "共掃過幾條網址"                                                                    #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+#TODO: DB
+#TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16

@@ -6,8 +6,10 @@ import time
 import datetime
 import threading
 
-import RequestException
+from ITRI import ITRIConfigLoader
+from ITRI import ITRIOutput
 import Main
+from tool import RequestException
 
 """
 HTTP Request handler 
@@ -31,8 +33,9 @@ class HTTPRequestHandler(threading.Thread):
         start_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d-%H:%M:%S")
 
         # Call Main to execute the kernel function
-        # TODO:
-        Main.handler()
+        # TODO: set configargs, json
+        configargs = request
+        Main.handler(configloader=ITRIConfigLoader.SQL2K5TConfig, configargs=configargs, db_handler=ITRIOutput.db_handler)
 
         # Do not need to send mail here
 
