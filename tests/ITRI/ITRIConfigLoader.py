@@ -53,6 +53,8 @@ class SQL2K5TConfig(SQL2K5T, Config):
         # TODO: Get the target config with name
         try:
             result = self.mainInfo[name]
+#            if name == "ignore_status":
+#                result = "-6"
         # TODO: temporarily read from file
         except:
             try:

@@ -33,9 +33,7 @@ def arg_initialize(argv):
     redirect_group.add_argument("--no-redirect", default=None, dest="redirect", action="store_false")
     commandline_subparser.add_argument("--filename", default="commandline", help="Specify output filename.")
     commandline_subparser.add_argument("--config", default="config/.requests.conf", help="Specify the config file.")
-    commandline_subparser.add_argument("--title", default="", help="Specify parsing link name.")
-    commandline_subparser.add_argument("--email", default="", help="Specify parsing admin email.")
-    commandline_subparser.add_argument("--unit", default="", help="Specify parsing admin unit.")
+    commandline_subparser.add_argument("--target_name", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--description", default="", help="Specify the request description.")
     return parser.parse_args()
 
@@ -47,7 +45,7 @@ def parse_funct(filename, config, db_handler):
     Request.initialize(config=config, decode="utf-8-sig")
     if config.depth >= 0:
         linktexts = []
-        linktexts.append((config.target_url, config.title))
+        linktexts.append((config.target_url, config.target_name))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
     Output.output_handler(history=history, config=config, output_filename=filename, db_handler=db_handler)
     Request.close()
@@ -90,9 +88,7 @@ def handler(configloader, configargs=None, args=None, db_handler=None):
 
             config.verify = args.verify if args.verify is not None else config.verify
             config.follow_redirection = args.redirect if args.redirect is not None else config.follow_redirection
-            config.title = args.title
-            config.email = args.email
-            config.unit = args.unit
+            config.target_name = args.target_name
             config.target_url = Functions.factor_url(args.url, "")
             config.current_url = Functions.factor_url(args.url, "")
             config.domain_url = Functions.pattern_generator(args.url)

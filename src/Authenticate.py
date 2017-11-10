@@ -62,40 +62,40 @@ class Authenticate():
 
             # Set encoding code and history
             r.encoding = Functions.detect_encoding(r)
-            self.history = History.history_handler(history=self.history, url=config.target_url, current_url=r.url, ssl_grade=ssl_grade, ssl_report_url=ssl_report_url, status_code=r.status_code, link_name=config.title, link_url=config.target_url, admin_email=config.email, admin_unit=config.unit, reason=r.reason, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, current_url=r.url, ssl_grade=ssl_grade, ssl_report_url=ssl_report_url, status_code=r.status_code, link_name=config.target_name, link_url=config.target_url, reason=r.reason, depth=0)
         except requests.exceptions.HTTPError as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.Timeout as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.TooManyRedirects as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.ConnectionError as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         except requests.exceptions.InvalidSchema as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         except Exception as e:
-            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.title, admin_email=config.email, link_url=config.target_url, admin_unit=config.unit, reason=e, depth=0)
+            self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
                 print("Authenticate: "+str(e))
         finally:
-            # If status_code is in config.broken_link, preparing to retry recursively
-            if self.history[config.target_url]["status_code"] in config.broken_link:
+            # If status_code is in config.search_status, preparing to retry recursively
+            if self.history[config.target_url]["status_code"] in config.search_status:
                 if retries < config.max_retries:
                     if self.history[config.target_url]["status_code"] in config.retry_code:
                         time.sleep(60)
@@ -106,6 +106,8 @@ class Authenticate():
             if retries == 0:
                 end_time = datetime.datetime.now()
                 time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+                self.history[config.target_url]["start_time"] = start_time
+                self.history[config.target_url]["end_time"] = end_time
                 self.history[config.target_url]["time_cost"] = time_cost
 
             return r

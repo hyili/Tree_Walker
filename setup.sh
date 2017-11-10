@@ -35,6 +35,16 @@ else
 	exit
 fi
 
+cp $curr_path/tests/config/.db.conf.example $curr_path/tests/config/.db.conf
+
+if [ "$?" == 0 ]
+then
+	echo "--> Ok. $curr_path/tests/config/.db.conf generated."
+else
+	echo "--> Looks like there is something terrible."
+	exit
+fi
+
 echo "\n--> Create tests/output/ and tests/logs/ ..."
 mkdir -p $curr_path/tests/output $curr_path/tests/logs
 

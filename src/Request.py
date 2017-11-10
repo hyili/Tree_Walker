@@ -107,8 +107,8 @@ class HTTPRequest(threading.Thread):
             if config.debug_mode:
                 print("Request: "+str(e))
         finally:
-            # If the result status_code is listed in config.broken_link, then prepare for retry recursively
-            if status_code in config.broken_link:
+            # If the result status_code is listed in config.search_status, then prepare for retry recursively
+            if status_code in config.search_status:
                 if retries < config.max_retries:
                     if status_code in config.retry_code:
                         time.sleep(60)
@@ -120,7 +120,7 @@ class HTTPRequest(threading.Thread):
                 end_time = datetime.datetime.now()
                 time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
 
-                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "time_cost": time_cost, "reason": reason, "response": r}
+                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "start_time": start_time, "end_time": end_time, "time_cost": time_cost, "reason": reason, "response": r}
             # If retries is not 0, that means here is still in recursive function
             else:
                 return r
@@ -229,65 +229,56 @@ def navigate(linktexts, config, depth=0, history={}, decode=None):
     counter = 0
 
     # Multi-thread version
-    if config.multithread:
-        # Run through each linktext
-        for linktext in linktexts:
-            # Using factor_url to complete the linktext, then sub_url records the completed link
-            sub_url = Functions.factor_url(config.current_url, linktext[0])
-            counter += 1
+    # Run through each linktext
+    for linktext in linktexts:
+        # Using factor_url to complete the linktext, then sub_url records the completed link
+        sub_url = Functions.factor_url(config.current_url, linktext[0])
+        counter += 1
 
-            # Check if sub_url already exists in history, if so, then update; or create a new one
-            if sub_url in history:
-                if history[sub_url]["status_code"] in config.broken_link:
-                    history[config.current_url]["contained_broken_link"] += 1
-                
-                if config.current_url not in history[sub_url]["parent_url"]:
-                    history[sub_url]["parent_url"].append(str(config.current_url))
+        # Check if sub_url already exists in history, if so, then update; or create a new one
+        if sub_url in history:
+            if history[sub_url]["status_code"] in config.search_status:
+                GlobalVars.total_output_links += 1
 
-                continue
-            else:
-                history = History.history_handler(init=True, history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
+            if config.current_url not in history[sub_url]["parent_url"]:
+                history[sub_url]["parent_url"].append(str(config.current_url))
 
-            # Put new request into history_in_queue, wait for workers to consume
-            GlobalVars.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "header": config.header})
+            continue
+        else:
+            history = History.history_handler(init=True, history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
 
-        # When workers processed all the request
-        GlobalVars.history_in_queue.join()
+        # Put new request into history_in_queue, wait for workers to consume
+        GlobalVars.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "header": config.header})
 
-        # Keep running until history_out_queue left nothing
-        while not GlobalVars.history_out_queue.empty():
-            # Get one result from history_out_queue, then update the current history
-            result = GlobalVars.history_out_queue.get()
-            sub_url = result["sub_url"]
-            history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], time_cost=result["time_cost"], reason=result["reason"])
-            r = result["response"]
+    # When workers processed all the request
+    GlobalVars.history_in_queue.join()
 
-            # Check if this result page is required to be crawled deeper
-            if history[sub_url]["status_code"] == 200:
-                if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
-                    try:
-                        pattern = "text/"
-                        if bool(re.search(pattern, r.headers["Content-Type"])):
-                            links.append((sub_url, r.text))
-                    except Exception as e:
-                        if config.debug_mode:
-                            print("Request"+str(e))
-                        pass
+    # Keep running until history_out_queue left nothing
+    while not GlobalVars.history_out_queue.empty():
+        # Get one result from history_out_queue, then update the current history
+        result = GlobalVars.history_out_queue.get()
+        sub_url = result["sub_url"]
+        history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], start_time=result["start_time"], end_time=result["end_time"], time_cost=result["time_cost"], reason=result["reason"])
+        r = result["response"]
 
-            # Remove some result that lists in config.ignore_code
-            if history[sub_url]["status_code"] in config.ignore_code:
-                del history[sub_url]
-            else:
-                if history[sub_url]["status_code"] in config.broken_link:
-                    history[config.current_url]["contained_broken_link"] += 1
+        # Check if this result page is required to be crawled deeper
+        if history[sub_url]["status_code"] == 200:
+            if bool(re.search(config.domain_url, history[sub_url]["current_url"])):
+                try:
+                    pattern = "text/"
+                    if bool(re.search(pattern, r.headers["Content-Type"])):
+                        links.append((sub_url, r.text))
+                except Exception as e:
+                    if config.debug_mode:
+                        print("Request"+str(e))
+                    pass
 
-                if history[sub_url]["status_code"] not in config.filter_code:
-                    GlobalVars.total_output_links += 1
-
-    # Single thread version
-    else:
-        print("Single thread deprecated. Using multithread instead.")
-        exit(0)
+        # Remove some result that lists in config.ignore_code
+        if history[sub_url]["status_code"] in config.ignore_code:
+            del history[sub_url]
+        else:
+            if history[sub_url]["status_code"] in config.search_status:
+                GlobalVars.total_output_links += 1
 
     # Check if recursive depth is reached the maximum depth
     if config.depth == depth:

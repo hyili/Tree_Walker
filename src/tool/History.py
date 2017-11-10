@@ -5,7 +5,7 @@
 """
 history handler
 """
-def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, contained_broken_link=0, admin_email="", admin_unit="", time_cost=-1, reason="", depth=-1):
+def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, start_time=None, end_time=None, time_cost=-1, reason="", depth=-1):
     if url == "" or history is None:
         print("History update failed.")
         return history
@@ -19,9 +19,8 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
         history[url]["ssl_grade"] = ssl_grade
         history[url]["ssl_report_url"] = ssl_report_url
         history[url]["status_code"] = status_code
-        history[url]["contained_broken_link"] = contained_broken_link
-        history[url]["admin_email"] = admin_email
-        history[url]["admin_unit"] = admin_unit
+        history[url]["start_time"] = start_time
+        history[url]["end_time"] = end_time
         history[url]["time_cost"] = time_cost
         history[url]["reason"] = reason
         history[url]["depth"] = depth
@@ -44,12 +43,10 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
             history[url]["ssl_report_url"] = ssl_report_url
         if status_code != -1:
             history[url]["status_code"] = status_code
-        if contained_broken_link != 0:
-            history[url]["contained_broken_link"] = contained_broken_link
-        if admin_email != "":
-            history[url]["admin_email"] = admin_email
-        if admin_unit != "":
-            history[url]["admin_unit"] = admin_unit
+        if start_time is not None:
+            history[url]["start_time"] = start_time
+        if end_time is not None:
+            history[url]["end_time"] = end_time
         if time_cost != -1:
             history[url]["time_cost"] = time_cost
         if reason != "":

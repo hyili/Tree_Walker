@@ -7,8 +7,7 @@ Static Global variable
 - total_links
     - this is used to record the total number of parsed links.
 - total_output_links
-    - this is used to record the total number of parsed links that are NOT in
-    filter_code.
+    - this is used to record the total number of parsed links that are NOT in filter_code.
 - history_out_queue
     - this is the message queue from worker thread to main thread to transfer history contains.
 - history_in_queue

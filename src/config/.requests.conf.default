@@ -5,9 +5,9 @@
 # --------------------------------------------------------------------------------------- #
 [DEFAULT]
 
-#TODO: DB
+#TODO: DB Local config
 #DEBUG_MODE=NO
-debug_mode=NO
+debug_mode=0
 
 sso_id=single-sign-on_id
 
@@ -16,30 +16,19 @@ sso_passwd=single-sign-on_password
 #DEPTH=1
 search_level=0
 
-#TODO: DB
-#PRINT_DEPTH=0
-report_level=0
-
 #TIMEOUT=5
 timeout=5
-
-#TODO: DB
-#MULTITHREAD=YES
-multithread=yes
 
 #THRESHOLD=1
 threshold=1
 
 #AUTH=NO
-is_intra=no
+is_intra=0
 
-#TODO: DB
 #AUTH_URL_PATTERN=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 sso_url=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 
-#TODO: DB
-#ADMIN_EMAIL=hyili@itri.org.tw
-admin_email=hyili@itri.org.tw
+target_name=ITRIWeb
 
 #TARGET_URL=https://itriweb.itri.org.tw
 target_url=https://itriweb.itri.org.tw
@@ -47,57 +36,52 @@ target_url=https://itriweb.itri.org.tw
 #DOMAIN_URL=itriweb.itri.org.tw
 search_domain=itriweb.itri.org.tw
 
-#TODO: DB
+#TODO: 0: for wanted 1: for unwanted
 #FILTER=200,403
-filter=403
+#filter=403
+search_flag=0
 
-#TODO: DB
 #IGNORE=-6
-ignore=-6
+ignore_status=-6
 
-#TODO: DB
 #RETRY=-3,-5
-retry=-3,-5
+retry_status=-3,-5
 
-#TODO: DB
 #MAX_RETRIES=0
 max_retries=0
 
-#TODO: DB
 #BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
 search_status=200,400,401,403,404,500,503,-3,-5
 
-#TODO: DB
 #FORMAT=STDOUT
 output_format=STDOUT,DB
 
-#TODO: DB
 #GROUP_PARENT_URL=NO
-group_parent_url=no
+group_parent_url=0
 
 #SORT=STATUS_CODE
 report_sort=STATUS_CODE
 
 #FOLLOW_REDIRECTION=NO
-follow_redirection=no
+follow_redirection=0
 
-#TODO: DB
+#TODO: DB Local config
 #DRIVER_LOCATION=/usr/local/bin/phantomjs
 driver_location=/usr/local/bin/phantomjs
 
-#TODO: DB
+#TODO: DB Local config
 #VERIFY_CERTIFICATE=NO
-verify_certificate=no
+verify_certificate=0
 
-#TODO: DB
+#TODO: DB Local config
 #SSLLAB_VERIFY_CERTIFICATE=NO
-ssllab_verify_certificate=no
+ssllab_verify_certificate=0
 
-#TODO: DB
+#TODO: DB Local Config
 #LOGPATH=logs/
 logpath=logs/
 
-#TODO: DB
+#TODO: DB Local Config
 #OUTPUTPATH=output/
 outputpath=output/
 
@@ -113,16 +97,21 @@ outputpath=output/
 # 6. "Certificate等級"                                                                    #
 # 7. "Certificate報告"                                                                    #
 # 8. "狀態碼"                                                                             #
-# 9. "第一層失連數"                                                                       #
-# 10. "負責人email"                                                                       #
-# 11. "負責人單位"                                                                        #
-# 12. "花費時間(秒)"                                                                      #
-# 13. "原因"                                                                              #
-# 14. "掃描層數"                                                                          #
-# 15. "共印出幾條網址"                                                                    #
-# 16. "共掃過幾條網址"                                                                    #
+# 9. "花費時間(秒)"                                                                      #
+# 10. "原因"                                                                              #
+# 11. "掃描層數"                                                                          #
+# 12. "共印出幾條網址"                                                                    #
+# 13. "共掃過幾條網址"                                                                    #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
-#TODO: DB
+#TODO: DB Local Config
 #TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
-type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13
+
+# the website should be online or offline
+online_status=1
+
+# scan or not
+is_monitor=1
+
+incharge_uid=020202

@@ -12,9 +12,6 @@ Config class
 """
 class Config():
     def __init__(self):
-        self.title = ""
-        self.email = ""
-        self.unit = ""
         pass
 
     # Wait for subclass implement
@@ -28,10 +25,8 @@ class Config():
         _debug_mode = self.load("debug_mode")
         _auth = self.load("is_intra")
         _auth_url_pattern = self.load("sso_url")
-        _admin_email = self.load("admin_email")
-        _multithread = self.load("multithread")
         _threshold = self.load("threshold", int)
-        _print_depth = self.load("report_level")
+        _target_name = self.load("target_name")
         _target_url = self.load("target_url")
         _current_url = _target_url
         _user = self.load("sso_id")
@@ -40,10 +35,10 @@ class Config():
         _depth = self.load("search_level", int)
         _timeout = self.load("timeout", int)
         _domain_url = self.load("search_domain", Functions.pattern_generator)
-        _filter_code = self.load("filter")
-        _ignore_code = self.load("ignore")
-        _retry_code = self.load("retry")
-        _broken_link = self.load("search_status")
+        _search_flag = self.load("search_flag")
+        _ignore_code = self.load("ignore_status")
+        _retry_code = self.load("retry_status")
+        _search_status = self.load("search_status")
         _max_retries = self.load("max_retries", int)
         _output_format = self.load("output_format")
         _group_parent_url = self.load("group_parent_url")
@@ -55,24 +50,16 @@ class Config():
         _logpath = self.load("logpath")
         _outputpath = self.load("outputpath")
         _type_setting = self.load("type_setting")
+        _online_status = self.load("online_status")
+        _is_monitor = self.load("is_monitor")
+        _incharge_uid = self.load("incharge_uid")
 
         # Preprocess the loaded config
-        if _debug_mode == "yes":
-            self.debug_mode = True
-        else:
-            self.debug_mode = False
-        if _auth == "yes":
-            self.auth = True
-        else:
-            self.auth = False
+        self.debug_mode = True if _debug_mode == "1" else False
+        self.auth = True if _auth == "1" else False
         self.auth_url_pattern = _auth_url_pattern
-        self.admin_email = [str(i) for i in _admin_email.split(",")]
-        if _multithread == "yes":
-            self.multithread = True
-        else:
-            self.multithread = False
         self.threshold = _threshold
-        self.print_depth = [int(i) for i in _print_depth.split(",")]
+        self.target_name = _target_name
         self.target_url = Functions.factor_url(_target_url, "")
         self.current_url = _current_url
         self.user = _user
@@ -85,33 +72,23 @@ class Config():
         self.depth = _depth
         self.timeout = _timeout
         self.domain_url = _domain_url
-        self.filter_code = [int(i) for i in _filter_code.split(",")]
+        self.search_flag = True if _search_flag == "1" else False
         self.ignore_code = [int(i) for i in _ignore_code.split(",")]
         self.retry_code = [int(i) for i in _retry_code.split(",")]
-        self.broken_link = [int(i) for i in _broken_link.split(",")]
+        self.search_status = [int(i) for i in _search_status.split(",")]
         self.max_retries = _max_retries
         self.output_format = [str(i) for i in _output_format.split(",")]
-        if _group_parent_url == "yes":
-            self.group_parent_url = True
-        else:
-            self.group_parent_url = False
+        self.group_parent_url = True if _group_parent_url == "1" else False
         self.sort = _sort
-        if _follow_redirection == "yes":
-            self.follow_redirection = True
-        else:
-            self.follow_redirection = False
+        self.follow_redirection = True if _follow_redirection == "1" else False
         self.driver_location = _driver_location
-        if _verify == "yes":
-            self.verify = True
-        else:
-            self.verify = False
-        if _ssllab_verify == "yes":
-            self.ssllab_verify = True
-        else:
-            self.ssllab_verify = False
+        self.verify = True if _verify == "1" else False
+        self.ssllab_verify = True if _ssllab_verify == "1" else False
         self.logpath = _logpath
         self.outputpath = _outputpath
         self.type_setting = [int(i) for i in _type_setting.split(",")]
+        self.online_status = True if _online_status == "1" else False
+        self.is_monitor = True if _is_monitor == "1" else False
 
 # read config from file, Default method
 class FileConfig(Config):
