@@ -170,13 +170,14 @@ def json_generator():
 """
 STDOUT Generator
 """
-def stdout_generator(history, config):
-    print("\n"+str(history[config.target_url]["status_code"]))
+def stdout_generator(result, config):
+    print("\n"+str(result["data"][config.target_url]["status_code"]))
+    print(str(result))
 
 """
 Output handler using specified format
 """
-def output_handler(history, config, output_filename, db_handler):
+def output_handler(result, config, output_filename, db_handler):
     # Prevent directory issue
     output_filename = output_filename.replace("/", " ")
 
@@ -184,23 +185,23 @@ def output_handler(history, config, output_filename, db_handler):
     if GlobalVars.total_output_links > 0:
         if "XML" in config.output_format:
             # Out-of-date
-            xml_generator(history, config, output_filename)
+            xml_generator(result["data"], config, output_filename)
 
         if "CSV" in config.output_format:
-            csv_generator(history, config, output_filename)
+            csv_generator(result["data"], config, output_filename)
 
         if "JSON" in config.output_format:
             # Not implement yet
             json_generator()
 
-        if "STDOUT" in config.output_format:
-            stdout_generator(history, config)
+    if "STDOUT" in config.output_format:
+        stdout_generator(result, config)
 
-        if "DB" in config.output_format:
-            # TODO: Not implement yet
-            try:
-                db_handler(history, config)
-            except Exception as e:
-                raise RequestException.NotImplementException("""The function called is undefined. 
-                        Reason: %s""" % (str(e)))
+    if "DB" in config.output_format:
+        # TODO: Not implement yet
+        try:
+            db_handler(result, config)
+        except Exception as e:
+            raise RequestException.NotImplementException("""The function called is undefined. 
+                    Reason: %s""" % (str(e)))
 

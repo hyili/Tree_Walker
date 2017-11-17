@@ -30,31 +30,31 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     Tag: %s
                     Reason: %s""" % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
 
-
-    # Get mainInfo
-    def get_tbl_mainInfo(self, primid):
-        self.cursor.execute("SELECT * FROM tbl_mainInfo WHERE [id]='%s'" % (primid))
-        self.mainInfo = self.cursor.fetchone()
-
-    # Get subInfo
-    def get_tbl_subInfo(self, subid):
-        self.cursor.execute("SELECT * FROM tbl_subInfo WHERE [id]='%s'" %(subid))
-        self.subInfo = self.cursor.fetchone()
-
     # Load config from DB server
     def load(self, name, funct=None):
         # Fetch config data at first time
         if self.mainInfo is None and self.subInfo is None:
             if self.args["primid"]:
                 self.get_tbl_mainInfo(self.args["primid"])
+            # TODO: if subid is not found in db, how to do next?
             if self.args["subid"]:
                 self.get_tbl_subInfo(self.args["subid"])
         
         # TODO: Get the target config with name
         try:
-            result = self.mainInfo[name]
-#            if name == "ignore_status":
-#                result = "-6"
+            if not self.args["subid"]:
+                result = self.mainInfo[name]
+            else:
+                if name == "target_url":
+                    result = self.subInfo["url"]
+                elif name == "timeout":
+                    result = self.subInfo["timewarn"]
+                elif name == "is_intra":
+                    result = self.subInfo["need_sso"]
+                elif name == "context":
+                    result = self.subInfo["context"]
+                else:
+                    result = self.mainInfo[name]
         # TODO: temporarily read from file
         except:
             try:

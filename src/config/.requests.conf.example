@@ -4,12 +4,12 @@
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 [COMMANDLINE]
-debug_mode=0
+debug_mode=N
 # The user is set for web login
 sso_id=username
 sso_passwd=password
 # Set 1 to allow authentication
-is_intra=0
+is_intra=N
 search_level=0
 max_retries=0
 output_format=STDOUT,CSV
@@ -19,10 +19,10 @@ output_format=STDOUT,CSV
 # The user is set for report sending
 sso_id=username
 sso_passwd=password
-is_intra=0
-follow_redirection=1
-verify_certificate=0
-ssllab_verify_certificate=0
+is_intra=N
+follow_redirection=Y
+verify_certificate=N
+ssllab_verify_certificate=N
 search_level=0
 timeout=20
 max_retries=5
@@ -33,10 +33,10 @@ output_format=CSV,STDOUT,DB
 # The user is set for report sending
 sso_id=username
 sso_passwd=password
-is_intra=0
-follow_redirection=0
-verify_certificate=0
-ssllab_verify_certificate=0
+is_intra=N
+follow_redirection=N
+verify_certificate=N
+ssllab_verify_certificate=N
 search_level=0
 timeout=20
 max_retries=0
@@ -51,8 +51,8 @@ type_setting=1,2,3,4,8,9,10,11,12,13
 sso_id=username
 sso_passwd=password
 is_intra=1
-verify_certificate=0
-ssllab_verify_certificate=0
+verify_certificate=N
+ssllab_verify_certificate=N
 search_level=0
 timeout=20
 output_format=CSV,STDOUT

@@ -53,7 +53,7 @@ class Authenticate():
             else:
                 if config.debug_mode:
                     print("It's only for ITRI Single Sign On lol~")
-                exit(0)
+                r = None
 
             # Using ssllab api to verify and test certificate
             if config.ssllab_verify:
@@ -121,6 +121,9 @@ def authenticate(session, config, decode=None):
     auth = Authenticate(session, config, decode)
     response = auth.authenticate()
     history = auth.get_history()
+
+    if response is None:
+        config.sso_check = False
 
     # Initialize return value
     ret_val = ("", history)

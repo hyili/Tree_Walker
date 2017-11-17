@@ -30,7 +30,7 @@ def exec():
     global request_queue
 
     # Get current time & update counter
-    dt = datetime.datetime.strftime(datetime.datetime.now(), "%Y/%m/%d-%H:%M:%S")
+    dt = datetime.datetime.now()
     counter += 1
 
     # Handle get request
@@ -48,11 +48,11 @@ def exec():
 
         # TODO: TaskID?
         # Put the request into request_queue
-        data = json.dumps({
+        data = json.loads(json.dumps({
             "primid": primid,
             "subid": subid,
-            "datetime": dt
-        })
+            "datetime": str(dt)
+        }))
         print("Waiting in queue.")
         request_queue.put(data)
 
@@ -73,6 +73,7 @@ def exec():
 
         # TODO: TaskID?
         # Put the request into request_queue
+        data["datetime"] = dt
         print("Waiting in queue.")
         request_queue.put(data)
 

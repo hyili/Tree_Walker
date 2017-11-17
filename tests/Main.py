@@ -3,6 +3,7 @@
 
 import sys
 import signal
+import datetime
 import argparse
 
 import context
@@ -41,13 +42,15 @@ def arg_initialize(argv):
 Parse function
 """
 def parse_funct(filename, config, db_handler):
+    start_time = datetime.datetime.now()
     history = {}
+    result = {"start_time": start_time, "data": history}
     Request.initialize(config=config, decode="utf-8-sig")
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.target_name))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
-    Output.output_handler(history=history, config=config, output_filename=filename, db_handler=db_handler)
+    Output.output_handler(result=result, config=config, output_filename=filename, db_handler=db_handler)
     Request.close()
 
 """

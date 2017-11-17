@@ -104,3 +104,15 @@ def find_linktexts(source):
 
     return linktexts
 
+"""
+Find the specified context
+"""
+def find_context(source, context):
+    if source is None:
+        return False
+
+    pattern = re.compile(context)
+    if bool(re.search(pattern, source)):
+        return True
+    else:
+        return False

@@ -50,13 +50,14 @@ class Config():
         _logpath = self.load("logpath")
         _outputpath = self.load("outputpath")
         _type_setting = self.load("type_setting")
-        _online_status = self.load("online_status")
-        _is_monitor = self.load("is_monitor")
-        _incharge_uid = self.load("incharge_uid")
+        _context = self.load("context")
+        _sso_check = True
+#        _online_status = self.load("online_status")
+#        _is_monitor = self.load("is_monitor")
 
         # Preprocess the loaded config
-        self.debug_mode = True if _debug_mode == "1" else False
-        self.auth = True if _auth == "1" else False
+        self.debug_mode = True if _debug_mode == "Y" or _debug_mode == "y" else False
+        self.auth = True if _auth == "Y" or _auth == "y" else False
         self.auth_url_pattern = _auth_url_pattern
         self.threshold = _threshold
         self.target_name = _target_name
@@ -78,17 +79,19 @@ class Config():
         self.search_status = [int(i) for i in _search_status.split(",")]
         self.max_retries = _max_retries
         self.output_format = [str(i) for i in _output_format.split(",")]
-        self.group_parent_url = True if _group_parent_url == "1" else False
+        self.group_parent_url = True if _group_parent_url == "Y" or _group_parent_url == "y" else False
         self.sort = _sort
-        self.follow_redirection = True if _follow_redirection == "1" else False
+        self.follow_redirection = True if _follow_redirection == "Y" or _follow_redirection == "y" else False
         self.driver_location = _driver_location
-        self.verify = True if _verify == "1" else False
-        self.ssllab_verify = True if _ssllab_verify == "1" else False
+        self.verify = True if _verify == "Y" or _verify == "y" else False
+        self.ssllab_verify = True if _ssllab_verify == "Y" or _ssllab_verify == "y" else False
         self.logpath = _logpath
         self.outputpath = _outputpath
         self.type_setting = [int(i) for i in _type_setting.split(",")]
-        self.online_status = True if _online_status == "1" else False
-        self.is_monitor = True if _is_monitor == "1" else False
+        self.context = _context
+        self.sso_check = _sso_check
+#        self.online_status = True if _online_status == "Y" or _online_status == "y" else False
+#        self.is_monitor = True if _is_monitor == "Y" or _is_monitor == "y" else False
 
 # read config from file, Default method
 class FileConfig(Config):

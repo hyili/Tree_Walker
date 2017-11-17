@@ -7,7 +7,7 @@
 
 #TODO: DB Local config
 #DEBUG_MODE=NO
-debug_mode=0
+debug_mode=N
 
 sso_id=single-sign-on_id
 
@@ -23,7 +23,7 @@ timeout=5
 threshold=1
 
 #AUTH=NO
-is_intra=0
+is_intra=N
 
 #AUTH_URL_PATTERN=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 sso_url=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
@@ -57,13 +57,13 @@ search_status=200,400,401,403,404,500,503,-3,-5
 output_format=STDOUT,DB
 
 #GROUP_PARENT_URL=NO
-group_parent_url=0
+group_parent_url=N
 
 #SORT=STATUS_CODE
 report_sort=STATUS_CODE
 
 #FOLLOW_REDIRECTION=NO
-follow_redirection=0
+follow_redirection=N
 
 #TODO: DB Local config
 #DRIVER_LOCATION=/usr/local/bin/phantomjs
@@ -71,11 +71,11 @@ driver_location=/usr/local/bin/phantomjs
 
 #TODO: DB Local config
 #VERIFY_CERTIFICATE=NO
-verify_certificate=0
+verify_certificate=N
 
 #TODO: DB Local config
 #SSLLAB_VERIFY_CERTIFICATE=NO
-ssllab_verify_certificate=0
+ssllab_verify_certificate=N
 
 #TODO: DB Local Config
 #LOGPATH=logs/
@@ -108,10 +108,13 @@ outputpath=output/
 #TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
 type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13
 
+# context for matching, default matches nothing
+context=
+
 # the website should be online or offline
-online_status=1
+online_status=Y
 
 # scan or not
-is_monitor=1
+is_monitor=Y
 
 incharge_uid=020202
