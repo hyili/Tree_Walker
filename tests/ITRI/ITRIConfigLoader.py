@@ -53,9 +53,10 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     result = self.subInfo["need_sso"]
                 elif name == "context":
                     result = self.subInfo["context"]
+                elif name == "report_sort":
+                    result = "STATUS_CODE"
                 else:
                     result = self.mainInfo[name]
-        # TODO: temporarily read from file
         except:
             try:
                 result = self.default_config.get(GlobalVars.DEFAULT_CONFIG_TAG, name)
