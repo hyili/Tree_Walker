@@ -80,6 +80,10 @@ def factor_url(current_url, sub_url):
     current_url = current_url.strip()
     sub_url = sub_url.strip()
 
+    pattern = "^(.)+://"
+    if not bool(re.search(pattern, current_url)):
+        current_url = "http://" + current_url
+
     pattern = "^(ftp|http(s)?)://"
     if bool(re.search(pattern, sub_url)):
         url = sub_url
