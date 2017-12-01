@@ -142,7 +142,7 @@ def navigate(linktexts, config, depth=0, history={}, decode=None):
 
         context_found = Functions.find_context(r.text, config.context) if r is not None else False
 
-        history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], start_time=result["start_time"], end_time=result["end_time"], time_cost=result["time_cost"], reason=result["reason"], context_found=context_found)
+        history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], start_time=result["start_time"], end_time=result["end_time"], time_cost=result["time_cost"], query_time=result["query_time"], reason=result["reason"], context_found=context_found)
 
         # Check if this result page is required to be crawled deeper
         if history[sub_url]["status_code"] == 200:

@@ -42,7 +42,7 @@ class Authenticate():
                 start_time = datetime.datetime.now()
 
             # Handle redirection
-            url = Webdriver.run_webdriver(config.target_url, config.timeout, config.driver_location, config.follow_redirection, config.verify)
+            url = Webdriver.run_webdriver(config.target_url, config.timeout, self.session.cookies, config.driver_location, config.follow_redirection, config.verify)
             # Redirect to SSO page
             r = self.session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
 

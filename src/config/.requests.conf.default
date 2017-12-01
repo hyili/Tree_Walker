@@ -34,7 +34,7 @@ target_name=ITRIWeb
 target_url=https://itriweb.itri.org.tw
 
 #DOMAIN_URL=itriweb.itri.org.tw
-search_domain=itriweb.itri.org.tw
+search_domain=
 
 #TODO: 0: for wanted 1: for unwanted
 #FILTER=200,403

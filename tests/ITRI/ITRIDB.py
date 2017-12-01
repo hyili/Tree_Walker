@@ -40,11 +40,11 @@ class SQL2K5T(MSSQLDB):
         # mainInfo_id, from_url, checked_name, checked_url, current_url, reason, found_level, check_time, spend_time, rtn_status, context_found, sso_check
         for url in history[record]["parent_url"]:
             self.cursor.execute("""INSERT INTO [tbl_records] ([mainInfo_id], [from_url], [checked_name], [checked_url], [current_url], [reason],
-                    [found_level], [check_time], [spend_time], [rtn_status], [context_found], [sso_check]) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    [found_level], [check_time], [spend_time], [query_time], [rtn_status], [context_found], [sso_check]) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                     (config.args["primid"], url, history[record]["link_name"], history[record]["link_url"], history[record]["current_url"], 
                     str(history[record]["reason"]), history[record]["depth"], str(history[record]["start_time"])[0:-3], history[record]["time_cost"], 
-                    history[record]["status_code"], context_found, sso_check))
+                    history[record]["query_time"], history[record]["status_code"], context_found, sso_check))
 
     def commit(self):
         self.connection.commit()

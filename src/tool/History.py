@@ -5,7 +5,7 @@
 """
 history handler
 """
-def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, start_time=None, end_time=None, time_cost=-1, reason="", depth=-1, context_found=None):
+def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, start_time=None, end_time=None, time_cost=-1, query_time=-1, reason="", depth=-1, context_found=None):
     if url == "" or history is None:
         print("History update failed.")
         return history
@@ -22,6 +22,7 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
         history[url]["start_time"] = start_time
         history[url]["end_time"] = end_time
         history[url]["time_cost"] = time_cost
+        history[url]["query_time"] = query_time
         history[url]["reason"] = reason
         history[url]["depth"] = depth
         history[url]["context_found"] = context_found
@@ -50,6 +51,8 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
             history[url]["end_time"] = end_time
         if time_cost != -1:
             history[url]["time_cost"] = time_cost
+        if query_time != -1:
+            history[url]["query_time"] = query_time
         if reason != "":
             history[url]["reason"] = reason
         if depth != -1:

@@ -37,7 +37,7 @@ class HTTPRequest(threading.Thread):
                 start_time = datetime.datetime.now()
 
             # Let Webdriver handles the redirection
-            url = Webdriver.run_webdriver(request["url"], request["timeout"], config.driver_location, config.follow_redirection, verify=config.verify)
+            url = Webdriver.run_webdriver(request["url"], request["timeout"], session.cookies, config.driver_location, config.follow_redirection, verify=config.verify)
             # Send request
             r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=config.verify)
 
@@ -95,8 +95,9 @@ class HTTPRequest(threading.Thread):
             if retries == 0:
                 end_time = datetime.datetime.now()
                 time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
+                query_time = r.elapsed.total_seconds() if r is not None else 0
 
-                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "start_time": start_time, "end_time": end_time, "time_cost": time_cost, "reason": reason, "response": r}
+                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "start_time": start_time, "end_time": end_time, "time_cost": time_cost, "query_time": query_time,"reason": reason, "response": r}
             # If retries is not 0, that means here is still in recursive function
             else:
                 return r
