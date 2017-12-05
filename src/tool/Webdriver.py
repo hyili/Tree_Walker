@@ -17,7 +17,11 @@ def run_webdriver(url, timeout, cookies=None, driver_location="/usr/local/bin/ph
     # set cookies
     if cookies is not None:
         for cookie in cookies:
-            wd.add_cookie({"name": cookie.name, "value": cookie.value, "domain": cookie.domain, "path": cookie.path})
+            try:
+                wd.add_cookie({"name": cookie.name, "value": cookie.value, "domain": cookie.domain, "path": cookie.path})
+            except Exception as e:
+                # TODO: Do nothing now
+                pass
     # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
     wd.set_page_load_timeout(timeout)
     wd.set_script_timeout(timeout)
