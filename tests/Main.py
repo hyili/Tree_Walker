@@ -53,8 +53,6 @@ def parse_funct(filename, config, db_handler):
     history = {}
     result = {"start_time": start_time, "data": history}
     Request.initialize(config=config, decode="utf-8-sig")
-    logging.basicConfig(filename="logs/error.report", filemode="a",
-            format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.target_name))
@@ -67,6 +65,9 @@ Handler
 - args for commandline input arguments, function call won't have this
 """
 def handler(configloader, configargs=None, args=None, db_handler=None):
+    logging.basicConfig(filename="logs/error.report", filemode="a",
+            format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
     # Signal handler
     try:
         signal.signal(signal.SIGINT, Request.signal_handler)

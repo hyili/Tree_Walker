@@ -12,7 +12,7 @@ sso_passwd=password
 is_intra=N
 search_level=0
 max_retries=0
-output_format=STDOUT,CSV
+output_format=STDOUT
 
 
 [APISERVER]
