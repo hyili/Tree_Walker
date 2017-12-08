@@ -3,6 +3,7 @@
 
 import sys
 import signal
+import logging
 import datetime
 import argparse
 
@@ -39,6 +40,12 @@ def arg_initialize(argv):
     return parser.parse_args()
 
 """
+Close function
+"""
+def close():
+    Request.close()
+
+"""
 Parse function
 """
 def parse_funct(filename, config, db_handler):
@@ -46,12 +53,14 @@ def parse_funct(filename, config, db_handler):
     history = {}
     result = {"start_time": start_time, "data": history}
     Request.initialize(config=config, decode="utf-8-sig")
+    logging.basicConfig(filename="logs/error.report", filemode="a",
+            format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.target_name))
         history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
     Output.output_handler(result=result, config=config, output_filename=filename, db_handler=db_handler)
-    Request.close()
+    close()
 
 """
 Handler

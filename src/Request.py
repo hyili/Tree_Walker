@@ -65,6 +65,7 @@ def initialize(config, decode=None):
         new_session = copy.deepcopy(session)
         sessions.append(new_session)
         thread = RequestWorker.HTTPRequest(i, str(i), event, new_session, config, GlobalVars.history_in_queue, GlobalVars.history_out_queue)
+        thread.daemon = True
         thread.start()
         threads.append(thread)
 

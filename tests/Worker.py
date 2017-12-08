@@ -3,6 +3,7 @@
 
 import os
 import time
+import signal
 import datetime
 import threading
 
@@ -16,6 +17,10 @@ HTTP Request handler
 """
 class HTTPRequestHandler(threading.Thread):
     def __init__(self, thread_id, thread_name, threads, event, request_queue):
+        # Timer tick handler
+        signal.signal(signal.SIGALRM, self.signal_handler)
+        signal.alarm(1)
+
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
@@ -27,6 +32,10 @@ class HTTPRequestHandler(threading.Thread):
 
     def thread_status(self):
         return self.status
+
+    def signal_handler(self, signal, frame):
+        if self.event.is_set():
+            Main.close()
 
     def handler(self, request, threads):
         # Record the start timestamp

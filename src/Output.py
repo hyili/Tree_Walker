@@ -202,6 +202,6 @@ def output_handler(result, config, output_filename, db_handler):
         try:
             db_handler(result, config)
         except Exception as e:
-            raise RequestException.NotImplementException("""The function called is undefined. 
+            raise RequestException.UnknownException("""The function called has unknown exception.
                     Reason: %s""" % (str(e)))
 

@@ -53,6 +53,8 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     result = self.subInfo["need_sso"]
                 elif name == "context":
                     result = self.subInfo["context"]
+                elif name == "follow_redirection":
+                    result = self.subInfo["redirection"]
                 elif name == "report_sort":
                     result = "STATUS_CODE"
                 else:

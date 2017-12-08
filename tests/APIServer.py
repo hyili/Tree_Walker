@@ -33,6 +33,7 @@ class APIServer():
         self.num_of_worker_threads = threads
         for i in range(0, self.num_of_worker_threads, 1):
             thread = Worker.HTTPRequestHandler(i, str(i), self.threads, self.event, self.request_queue)
+            thread.daemon = True
             thread.start()
             self.threads.append(thread)
 
