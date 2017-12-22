@@ -129,7 +129,7 @@ def navigate(linktexts, config, depth=0, history={}, decode=None):
             history = History.history_handler(init=True, history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
 
         # Put new request into history_in_queue, wait for workers to consume
-        GlobalVars.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "header": config.header})
+        GlobalVars.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "redirection_timeout": config.redirection_timeout, "header": config.header})
 
     # When workers processed all the request
     GlobalVars.history_in_queue.join()

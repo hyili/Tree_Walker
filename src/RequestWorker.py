@@ -37,7 +37,7 @@ class HTTPRequest(threading.Thread):
                 start_time = datetime.datetime.now()
 
             # Let Webdriver handles the redirection
-            url = Webdriver.run_webdriver(request["url"], request["timeout"], session.cookies, config.driver_location, config.follow_redirection, verify=config.verify)
+            url = Webdriver.run_webdriver(request["url"], request["redirection_timeout"], session.cookies, config.driver_location, config.follow_redirection, verify=config.verify)
             # Send request
             r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=config.verify)
 

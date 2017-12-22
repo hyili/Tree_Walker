@@ -34,6 +34,7 @@ class Config():
         _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
         _depth = self.load("search_level", int)
         _timeout = self.load("timeout", int)
+        _redirection_timeout = self.load("redirection_timeout", int)
         _domain_url = self.load("search_domain", Functions.pattern_generator)
         _search_flag = self.load("search_flag")
         _ignore_code = self.load("ignore_status")
@@ -72,6 +73,7 @@ class Config():
             self.payload = {}
         self.depth = _depth
         self.timeout = _timeout
+        self.redirection_timeout = _redirection_timeout
         self.domain_url = _domain_url
         self.search_flag = True if _search_flag == "1" else False
         self.ignore_code = [int(i) for i in _ignore_code.split(",")]

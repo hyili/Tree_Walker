@@ -49,6 +49,8 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     result = self.subInfo["url"]
                 elif name == "timeout":
                     result = self.subInfo["timewarn"]
+                elif name == "redirection_timeout"
+                    result = self.subInfo["redirection_timeout"]
                 elif name == "is_intra":
                     result = self.subInfo["need_sso"]
                 elif name == "context":

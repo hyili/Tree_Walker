@@ -19,6 +19,9 @@ search_level=0
 #TIMEOUT=5
 timeout=5
 
+#TIMEOUT=5
+redirection_timeout=5
+
 #THRESHOLD=1
 threshold=1
 
