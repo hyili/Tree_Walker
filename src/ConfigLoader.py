@@ -53,6 +53,7 @@ class Config():
         _type_setting = self.load("type_setting")
         _context = self.load("context")
         _sso_check = True
+        _steps = self.load("steps")
 #        _online_status = self.load("online_status")
 #        _is_monitor = self.load("is_monitor")
 
@@ -92,6 +93,7 @@ class Config():
         self.type_setting = [int(i) for i in _type_setting.split(",")]
         self.context = _context
         self.sso_check = _sso_check
+        self.steps = _steps
 #        self.online_status = True if _online_status == "Y" or _online_status == "y" else False
 #        self.is_monitor = True if _is_monitor == "Y" or _is_monitor == "y" else False
 
@@ -142,4 +144,4 @@ class FileConfig(Config):
         if funct is None:
             return result
         else:
-            return funct(result)
+            return funct(str(result))

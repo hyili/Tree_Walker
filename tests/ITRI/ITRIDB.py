@@ -50,25 +50,27 @@ class SQL2K5T(MSSQLDB):
             try:
                 self.cursor.execute("""INSERT INTO [tbl_records] ([mainInfo_id], [from_url], [checked_name],
                         [checked_url], [current_url], [reason], [found_level], [check_time], [spend_time],
-                        [query_time], [rtn_status], [context_found], [sso_check]) 
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                        [query_time], [rtn_status], [context_found], [sso_check], [steps]) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                         (str(config.args["primid"]), str(url), str(history[record]["link_name"]),
                         str(history[record]["link_url"]), str(history[record]["current_url"]),
                         str(history[record]["reason"]), history[record]["depth"],
                         str(history[record]["start_time"])[0:-3], history[record]["time_cost"], 
-                        str(history[record]["query_time"]), str(history[record]["status_code"]), context_found, sso_check))
+                        str(history[record]["query_time"]), str(history[record]["status_code"]),
+                        context_found, sso_check, str(config.steps)))
             except Exception as e:
                 raise RequestException.DBException("""Some error ocurred when insert data into DB.
                         Reason: INSERT INTO [tbl_records] ([mainInfo_id], [from_url], [checked_name],
                         [checked_url], [current_url], [reason], [found_level], [check_time], [spend_time],
-                        [query_time], [rtn_status], [context_found], [sso_check])
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        [query_time], [rtn_status], [context_found], [sso_check], [steps])
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         Exception Details: %s"""%
                         (str(config.args["primid"]), str(url), str(history[record]["link_name"]),
                         str(history[record]["link_url"]), str(history[record]["current_url"]), 
                         str(history[record]["reason"]), history[record]["depth"],
                         str(history[record]["start_time"])[0:-3], str(history[record]["time_cost"]), 
-                        str(history[record]["query_time"]), str(history[record]["status_code"]), context_found, sso_check, str(e)))
+                        str(history[record]["query_time"]), str(history[record]["status_code"]),
+                        context_found, sso_check, str(config.steps), str(e)))
 
     def commit(self):
         self.connection.commit()

@@ -49,7 +49,7 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     result = self.subInfo["url"]
                 elif name == "timeout":
                     result = self.subInfo["timewarn"]
-                elif name == "redirection_timeout"
+                elif name == "redirection_timeout":
                     result = self.subInfo["redirection_timeout"]
                 elif name == "is_intra":
                     result = self.subInfo["need_sso"]
@@ -59,6 +59,8 @@ class SQL2K5TConfig(SQL2K5T, Config):
                     result = self.subInfo["redirection"]
                 elif name == "report_sort":
                     result = "STATUS_CODE"
+                elif name == "steps":
+                    result = self.subInfo["steps"]
                 else:
                     result = self.mainInfo[name]
         except:
@@ -70,7 +72,15 @@ class SQL2K5TConfig(SQL2K5T, Config):
                         Tag: %s
                         Reason: %s""" % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
 
+        if name == "redirection_timeout":
+            result = 5
+        if result is None:
+            raise RequestException.FileException("""Some error occurred when reading from config.
+                    PrimID: %s
+                    SubID: %s
+                    Reason: name: %s is now %s""" % (self.args["primid"], self.args["subid"], name, result))
+
         if funct is None:
             return result
         else:
-            return funct(result)
+            return funct(str(result))
