@@ -9,8 +9,8 @@ import argparse
 
 import context
 import ConfigLoader
-import Request
 import Output
+from Request import Request
 from tool import GlobalVars
 from tool import Functions
 
@@ -40,25 +40,27 @@ def arg_initialize(argv):
     return parser.parse_args()
 
 """
-Close function
-"""
-def close():
-    Request.close()
-
-"""
 Parse function
 """
 def parse_funct(filename, config, db_handler):
     start_time = datetime.datetime.now()
     history = {}
     result = {"start_time": start_time, "data": history}
-    Request.initialize(config=config, decode="utf-8-sig")
+    r = Request(config=config, decode="utf-8-sig")
+
+    # Signal handler
+    try:
+        signal.signal(signal.SIGINT, r.signal_handler)
+    # Do nothing in main thread
+    except:
+        pass
+
     if config.depth >= 0:
         linktexts = []
         linktexts.append((config.target_url, config.target_name))
-        history.update(Request.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
+        history.update(r.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
     Output.output_handler(result=result, config=config, output_filename=filename, db_handler=db_handler)
-    close()
+    r.close()
 
 """
 Handler
@@ -67,13 +69,6 @@ Handler
 def handler(configloader, configargs=None, args=None, db_handler=None):
     logging.basicConfig(filename="logs/error.report", filemode="a",
             format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-
-    # Signal handler
-    try:
-        signal.signal(signal.SIGINT, Request.signal_handler)
-    # Do nothing in main thread
-    except:
-        pass
 
     # Enter from function call
     # Load configuration from self-defined DB configloader

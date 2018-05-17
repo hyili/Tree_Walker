@@ -35,7 +35,8 @@ class HTTPRequestHandler(threading.Thread):
 
     def signal_handler(self, signal, frame):
         if self.event.is_set():
-            Main.close()
+            pass
+            #Main.close()
 
     def handler(self, request, threads):
         # Record the start timestamp
