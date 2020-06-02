@@ -9,7 +9,6 @@ import requests
 from tool.ssllab import ssllabsscanner as ssllabscanner
 from tool import GlobalVars
 from tool import History
-from tool import Webdriver
 from tool import Functions
 
 """
@@ -41,24 +40,17 @@ class Authenticate():
             if retries == 0:
                 start_time = datetime.datetime.now()
 
-            # Handle redirection
-            url = Webdriver.run_webdriver(config.target_url, config.redirection_timeout, self.session.cookies, config.driver_location, config.follow_redirection, config.verify)
             # Redirect to SSO page
-            r = self.session.get(url, timeout=config.timeout, headers=config.header, verify=config.verify)
+            r = self.session.get("https://itriforms.itri.org.tw/itrisso_login.fcc", timeout=config.timeout, headers=config.header, verify=config.verify)
 
-            # Check the url is the correct SSO page
-            if (re.search(config.auth_url_pattern, r.url)):
+            # Domain verification, not sso url verification
+            if (re.search(config.search_domain_pattern, config.target_url)):
                 # Make a request with SSO account and password in payload
                 r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
+                if (re.search(config.auth_url_pattern, r.url)):
+                    raise Exception("Login Failed")
             else:
-                if config.debug_mode:
-                    print("It's only for ITRI Single Sign On lol~")
-                r = None
-
-            # Using ssllab api to verify and test certificate
-            if config.ssllab_verify:
-                ssl_grade = ssllabscanner.newScan(self.config.target_url)["endpoints"][0]["gradeTrustIgnored"]
-                ssl_report_url = "https://www.ssllabs.com/ssltest/analyze.html?d="+self.config.target_url
+                raise Exception("It's only for ITRI Single Sign On lol~")
 
             # Set encoding code and history
             r.encoding = Functions.detect_encoding(r)
@@ -122,9 +114,6 @@ def authenticate(session, config, decode=None):
     response = auth.authenticate()
     history = auth.get_history()
 
-    if response is None:
-        config.sso_check = False
-
     # Initialize return value
     ret_val = ("", history)
 
@@ -137,7 +126,6 @@ def authenticate(session, config, decode=None):
         except Exception as e:
             if config.debug_mode:
                 print("Authenticate: "+str(e))
-            pass
 
     # Remove the result which status_code is listed in config.ignore_code
     if history[config.target_url]["status_code"] in config.ignore_code:

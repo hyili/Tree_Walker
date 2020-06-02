@@ -9,9 +9,11 @@
 #DEBUG_MODE=NO
 debug_mode=N
 
-sso_id=single-sign-on_id
+# DEPRECATED
+#sso_id=single-sign-on_id
 
-sso_passwd=single-sign-on_password
+# DEPRECATED
+#sso_passwd=single-sign-on_password
 
 #DEPTH=1
 search_level=0
@@ -37,7 +39,7 @@ target_name=ITRIWeb
 target_url=https://itriweb.itri.org.tw
 
 #DOMAIN_URL=itriweb.itri.org.tw
-search_domain=
+search_domain=itri\.org\.tw
 
 #TODO: 0: for wanted 1: for unwanted
 #FILTER=200,403
@@ -70,7 +72,7 @@ follow_redirection=N
 
 #TODO: DB Local config
 #DRIVER_LOCATION=/usr/local/bin/phantomjs
-driver_location=/usr/local/bin/phantomjs
+driver_location=/home/pythonUser/Webdriver/chromedriver
 
 #TODO: DB Local config
 #VERIFY_CERTIFICATE=NO
@@ -92,19 +94,6 @@ outputpath=output/
 #                                                                                         #
 # TYPE_SETTING={Type setting of csv output file}                                          #
 #                                                                                         #
-# 1. "日期時間"                                                                           #
-# 2. "從何而來"                                                                           #
-# 3. "連結網址"                                                                           #
-# 4. "連結名稱"                                                                           #
-# 5. "當前網址"                                                                           #
-# 6. "Certificate等級"                                                                    #
-# 7. "Certificate報告"                                                                    #
-# 8. "狀態碼"                                                                             #
-# 9. "花費時間(秒)"                                                                      #
-# 10. "原因"                                                                              #
-# 11. "掃描層數"                                                                          #
-# 12. "共印出幾條網址"                                                                    #
-# 13. "共掃過幾條網址"                                                                    #
 #                                                                                         #
 # --------------------------------------------------------------------------------------- #
 #TODO: DB Local Config

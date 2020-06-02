@@ -10,25 +10,24 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
         print("History update failed.")
         return history
 
-    if init:
-        history[url] = {}
-        history[url]["parent_url"] = parent_urls
-        history[url]["link_url"] = link_url
-        history[url]["link_name"] = link_name
-        history[url]["current_url"] = current_url
-        history[url]["ssl_grade"] = ssl_grade
-        history[url]["ssl_report_url"] = ssl_report_url
-        history[url]["status_code"] = status_code
-        history[url]["start_time"] = start_time
-        history[url]["end_time"] = end_time
-        history[url]["time_cost"] = time_cost
-        history[url]["query_time"] = query_time
-        history[url]["reason"] = reason
-        history[url]["depth"] = depth
-        history[url]["context_found"] = context_found
+    if init or url not in history:
+        history[url] = {
+                "parent_url": parent_urls,
+                "link_url": link_url,
+                "link_name": link_name,
+                "current_url": current_url,
+                "ssl_grade": ssl_grade,
+                "ssl_report_url": ssl_report_url,
+                "status_code": status_code,
+                "start_time": start_time,
+                "end_time": end_time,
+                "time_cost": time_cost,
+                "query_time": query_time,
+                "reason": reason,
+                "depth": depth,
+                "context_found": context_found
+        }
     else:
-        if url not in history:
-            history_handler(init=True, history=history, url=url)
         if parent_urls is not None:
             for parent_url in parent_urls:
                 if parent_url not in history[url]["parent_url"]:

@@ -6,8 +6,6 @@
 [COMMANDLINE]
 debug_mode=N
 # The user is set for web login
-sso_id=username
-sso_passwd=password
 # Set 1 to allow authentication
 is_intra=N
 search_level=0
@@ -17,8 +15,6 @@ output_format=STDOUT
 
 [APISERVER]
 # The user is set for report sending
-sso_id=username
-sso_passwd=password
 is_intra=N
 follow_redirection=Y
 verify_certificate=N
@@ -31,8 +27,6 @@ output_format=CSV,STDOUT,DB
 
 [APISERVER-WEB-BACKEND]
 # The user is set for report sending
-sso_id=username
-sso_passwd=password
 is_intra=N
 follow_redirection=N
 verify_certificate=N
@@ -48,8 +42,6 @@ search_status=200,400,401,403,404,500,503,-3,-5
 type_setting=1,2,3,4,8,9,10,11,12,13
 
 [WEBCHECK]
-sso_id=username
-sso_passwd=password
 is_intra=1
 verify_certificate=N
 ssllab_verify_certificate=N

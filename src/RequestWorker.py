@@ -23,6 +23,8 @@ class HTTPRequest(threading.Thread):
         self.thread_name = thread_name
         self.q_in = q_in
         self.q_out = q_out
+        self.webdriver = Webdriver.ChromeDriver()
+        self.webdriver.init_webdriver(session.cookies, config.driver_location, config.verify)
 
     def send_head_request(self, session, request):
         return True
@@ -37,9 +39,9 @@ class HTTPRequest(threading.Thread):
                 start_time = datetime.datetime.now()
 
             # Let Webdriver handles the redirection
-            url = Webdriver.run_webdriver(request["url"], request["redirection_timeout"], session.cookies, config.driver_location, config.follow_redirection, verify=config.verify)
+            url = self.webdriver.run_webdriver(request["url"], request["redirection_timeout"]) if config.follow_redirection else request["url"]
             # Send request
-            r = session.get(url, timeout=request["timeout"], headers=request["header"], verify=config.verify)
+            r = session.get(url, timeout=request["timeout"], headers=request["header"])
 
             # Set encoding code, then record the result
             r.encoding = Functions.detect_encoding(r)
@@ -126,3 +128,5 @@ class HTTPRequest(threading.Thread):
                 self.q_out.put(response)
 
             self.q_in.task_done()
+
+        self.webdriver.close_webdriver()

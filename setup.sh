@@ -13,7 +13,7 @@ else
 fi
 
 echo "\n--> Installing python3 packages ..."
-pip install --upgrade pip
+pip3 install --upgrade pip
 pip3 install -r $curr_path/requirements
 
 if [ "$?" == 0 ]

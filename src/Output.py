@@ -3,6 +3,7 @@
 
 import os
 import csv
+import sys
 import datetime
 from lxml import etree
 
@@ -172,7 +173,8 @@ STDOUT Generator
 """
 def stdout_generator(result, config):
     print("\n"+str(result["data"][config.target_url]["status_code"]))
-    print(str(result))
+    sys.stdout.buffer.write(str(result).encode("utf-8-sig"))
+    #print(str(result)) # Need to add PYHTONIOENCODING=utf-8-sig
 
 """
 Output handler using specified format

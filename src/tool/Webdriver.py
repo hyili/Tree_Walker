@@ -3,37 +3,44 @@
 
 import time
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
-"""
-- Selenium Web Driver
-    - just use selenium for web url after redirecting
-"""
-def run_webdriver(url, timeout, cookies=None, driver_location="/usr/local/bin/phantomjs", follow_redirection=False, verify=False):
-    if not follow_redirection:
-        return url
 
-    # Authentication session synchronization between requests and selenium problem. Done
-    wd = webdriver.PhantomJS(executable_path=driver_location, service_args=["--ignore-ssl-errors="+str(not verify).lower(), "--ssl-protocol=any"])
-    # set cookies
-    if cookies is not None:
-        for cookie in cookies:
-            try:
-                wd.add_cookie({"name": cookie.name, "value": cookie.value, "domain": cookie.domain, "path": cookie.path})
-            except Exception as e:
-                # TODO: Do nothing now
-                pass
-    # wd = webdriver.Chrome(executable_path="/Users/hyili/Documents/Python/selenium/ChromeDriver/chromedriver")
-    wd.set_page_load_timeout(timeout)
-    wd.set_script_timeout(timeout)
-    try:
-        wd.get(url)
-        time.sleep(timeout)
-        result = wd.current_url
-        if wd.current_url == "about:blank":
+class ChromeDriver():
+    def __init__(self):
+        self.wd = None
+    
+    def init_webdriver(self, cookies=None, driver_location="/usr/local/bin/chromedriver", verify=False):
+        if self.wd is None:
+            # Authentication session synchronization between requests and selenium problem. Done
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--ssl-protocol=any")
+            chrome_options.add_argument(f"--ignore-ssl-errors={str(not verify).lower()}")
+            self.wd = webdriver.Chrome(executable_path=driver_location, chrome_options=chrome_options)
+
+            # init
+            self.wd.get("https://itriforms.itri.org.tw/itrisso_login.fcc")
+
+            # set cookies
+            if cookies is not None:
+                for cookie in cookies:
+                    self.wd.add_cookie(cookie.__dict__)
+    
+    def run_webdriver(self, url, timeout):
+        self.wd.set_page_load_timeout(timeout)
+        self.wd.set_script_timeout(timeout)
+    
+        try:
+            self.wd.get(url)
+            time.sleep(timeout)
+            result = self.wd.current_url
+            if self.wd.current_url == "about:blank":
+                result = url
+        except:
             result = url
-    except:
-        result = url
-    finally:
-        wd.quit()
-        return result
-
+        finally:
+            return result
+    
+    def close_webdriver(self):
+        self.wd.quit()

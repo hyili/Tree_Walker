@@ -25,12 +25,13 @@ class Config():
         _debug_mode = self.load("debug_mode")
         _auth = self.load("is_intra")
         _auth_url_pattern = self.load("sso_url")
+        _search_domain_pattern = self.load("search_domain")
         _threshold = self.load("threshold", int)
         _target_name = self.load("target_name")
         _target_url = self.load("target_url")
         _current_url = _target_url
-        _user = self.load("sso_id")
-        _password = self.load("sso_passwd")
+        _user = "USER"
+        _password = "PASSWORD"
         _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
         _depth = self.load("search_level", int)
         _timeout = self.load("timeout", int)
@@ -61,6 +62,7 @@ class Config():
         self.debug_mode = True if _debug_mode == "Y" or _debug_mode == "y" else False
         self.auth = True if _auth == "Y" or _auth == "y" else False
         self.auth_url_pattern = _auth_url_pattern
+        self.search_domain_pattern = _search_domain_pattern
         self.threshold = _threshold
         self.target_name = _target_name
         self.target_url = Functions.factor_url(_target_url, "")
@@ -69,7 +71,7 @@ class Config():
         self.password = _password
         self.header = _header
         if self.auth:
-            self.payload = {"USER": self.user, "PASSWORD": self.password}
+            self.payload = {"USER": self.user, "PASSWORD": self.password, "TARGET": self.target_url}
         else:
             self.payload = {}
         self.depth = _depth

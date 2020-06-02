@@ -2,6 +2,7 @@
 # -*- coding: utf-8-sig -*-
 
 import sys
+import getpass
 import signal
 import logging
 import datetime
@@ -37,6 +38,9 @@ def arg_initialize(argv):
     commandline_subparser.add_argument("--config", default="config/.requests.conf", help="Specify the config file.")
     commandline_subparser.add_argument("--target_name", default="", help="Specify parsing link name.")
     commandline_subparser.add_argument("--description", default="", help="Specify the request description.")
+    auth_group = commandline_subparser.add_mutually_exclusive_group()
+    auth_group.add_argument("--auth", default=None, dest="auth", action="store_true")
+    auth_group.add_argument("--no-auth", default=None, dest="auth", action="store_false")
     return parser.parse_args()
 
 """
@@ -100,6 +104,14 @@ def handler(configloader, configargs=None, args=None, db_handler=None):
             config.target_url = Functions.factor_url(args.url, "")
             config.current_url = Functions.factor_url(args.url, "")
             config.domain_url = Functions.pattern_generator(args.url)
+            config.auth = args.auth if args.auth is not None else config.auth
+            if config.auth:
+                print("User:", end="", flush=True)
+                config.payload["USER"] = sys.stdin.readline()
+                config.payload["PASSWORD"] = getpass.getpass()
+                config.payload["TARGET"] = config.target_url
+            else:
+                config.payload = {}
 
             if args.depth >= 0:
                 config.depth = args.depth
