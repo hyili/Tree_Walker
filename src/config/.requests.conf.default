@@ -113,3 +113,5 @@ online_status=Y
 is_monitor=Y
 
 incharge_uid=020202
+
+save_screenshot=N

@@ -172,9 +172,14 @@ def json_generator():
 STDOUT Generator
 """
 def stdout_generator(result, config):
-    print("\n"+str(result["data"][config.target_url]["status_code"]))
-    sys.stdout.buffer.write(str(result).encode("utf-8-sig"))
-    #print(str(result)) # Need to add PYHTONIOENCODING=utf-8-sig
+    muted_result = result.copy()
+    for key in muted_result["data"]:
+        if config.save_screenshot:
+            muted_result["data"][key]["screenshot"] = "#muted"
+
+    print("\n"+str(muted_result["data"][config.target_url]["status_code"]))
+    sys.stdout.buffer.write(str(muted_result).encode("utf-8-sig"))
+    #print(str(muted_result)) # Need to add PYHTONIOENCODING=utf-8-sig
 
 """
 Output handler using specified format

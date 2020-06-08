@@ -5,7 +5,7 @@
 """
 history handler
 """
-def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, start_time=None, end_time=None, time_cost=-1, query_time=-1, reason="", depth=-1, context_found=None):
+def history_handler(init=False, history=None, url="", parent_urls=None, link_url="", link_name="", current_url="", ssl_grade="?", ssl_report_url="", status_code=-1, start_time=None, end_time=None, time_cost=-1, query_time=-1, reason="", depth=-1, context_found=None, screenshot=None):
     if url == "" or history is None:
         print("History update failed.")
         return history
@@ -25,7 +25,8 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
                 "query_time": query_time,
                 "reason": reason,
                 "depth": depth,
-                "context_found": context_found
+                "context_found": context_found,
+                "screenshot": screenshot
         }
     else:
         if parent_urls is not None:
@@ -58,6 +59,8 @@ def history_handler(init=False, history=None, url="", parent_urls=None, link_url
             history[url]["depth"] = depth
         if context_found is not None:
             history[url]["context_found"] = context_found
+        if screenshot is not None:
+            history[url]["screenshot"] = screenshot
 
     return history
 

@@ -53,8 +53,10 @@ class Request():
         self.sessions.append(session)
         if config.auth:
             (source, auth_history) = Authenticate.authenticate(session=session, config=config, decode=decode)
-            if source is None:
+            if source == "":
                 config.sso_check = False
+            if source == None:
+                raise Exception("Request: SSO failed")
     
         # Disable requests module warnings
         requests.packages.urllib3.disable_warnings()
@@ -64,6 +66,7 @@ class Request():
     
         # Initialize Worker
         for i in range(0, self.num_of_worker_threads, 1):
+            # TODO: fetch out the cookies
             new_session = copy.deepcopy(session)
             self.sessions.append(new_session)
             thread = RequestWorker.HTTPRequest(i, str(i), self.event, new_session, config, self.history_in_queue, self.history_out_queue)
@@ -129,7 +132,7 @@ class Request():
                 history = History.history_handler(init=True, history=history, url=sub_url, parent_urls=[str(config.current_url)], link_url=str(sub_url), link_name=str(linktext[1]), depth=depth)
     
             # Put new request into self.history_in_queue, wait for workers to consume
-            self.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "redirection_timeout": config.redirection_timeout, "header": config.header})
+            self.history_in_queue.put({"counter": counter, "total": GlobalVars.total_links, "url": sub_url, "timeout": config.timeout, "redirection_timeout": config.redirection_timeout, "header": config.header, "save_screenshot": config.save_screenshot})
     
         # When workers processed all the request
         self.history_in_queue.join()
@@ -143,7 +146,7 @@ class Request():
     
             context_found = Functions.find_context(r.text, config.context) if r is not None else False
     
-            history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], start_time=result["start_time"], end_time=result["end_time"], time_cost=result["time_cost"], query_time=result["query_time"], reason=result["reason"], context_found=context_found)
+            history = History.history_handler(history=history, url=sub_url, current_url=result["current_url"], status_code=result["status_code"], start_time=result["start_time"], end_time=result["end_time"], time_cost=result["time_cost"], query_time=result["query_time"], reason=result["reason"], context_found=context_found, screenshot=result["screenshot"])
     
             # Check if this result page is required to be crawled deeper
             if history[sub_url]["status_code"] == 200:

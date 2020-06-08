@@ -115,7 +115,11 @@ def authenticate(session, config, decode=None):
     history = auth.get_history()
 
     # Initialize return value
-    ret_val = ("", history)
+    if response is None:
+        ret_val = (None, history)
+        return ret_val
+    else:
+        ret_val = ("", history)
 
     # Check target_url source page is text format, not a file or others
     if history[config.target_url]["status_code"] == 200:

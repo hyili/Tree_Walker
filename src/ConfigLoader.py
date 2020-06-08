@@ -57,6 +57,7 @@ class Config():
         _steps = self.load("steps")
 #        _online_status = self.load("online_status")
 #        _is_monitor = self.load("is_monitor")
+        _save_screenshot = self.load("save_screenshot")
 
         # Preprocess the loaded config
         self.debug_mode = True if _debug_mode == "Y" or _debug_mode == "y" else False
@@ -98,6 +99,7 @@ class Config():
         self.steps = _steps
 #        self.online_status = True if _online_status == "Y" or _online_status == "y" else False
 #        self.is_monitor = True if _is_monitor == "Y" or _is_monitor == "y" else False
+        self.save_screenshot = True if _save_screenshot == "Y" or _save_screenshot == "y" else False
 
 # read config from file, Default method
 class FileConfig(Config):

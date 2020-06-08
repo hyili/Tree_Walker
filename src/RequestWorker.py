@@ -23,8 +23,9 @@ class HTTPRequest(threading.Thread):
         self.thread_name = thread_name
         self.q_in = q_in
         self.q_out = q_out
-        self.webdriver = Webdriver.ChromeDriver()
-        self.webdriver.init_webdriver(session.cookies, config.driver_location, config.verify)
+        if self.config.follow_redirection:
+            self.webdriver = Webdriver.ChromeDriver(session.cookies, self.config.verify, self.config.driver_location)
+            self.webdriver.init_webdriver()
 
     def send_head_request(self, session, request):
         return True
@@ -39,7 +40,7 @@ class HTTPRequest(threading.Thread):
                 start_time = datetime.datetime.now()
 
             # Let Webdriver handles the redirection
-            url = self.webdriver.run_webdriver(request["url"], request["redirection_timeout"]) if config.follow_redirection else request["url"]
+            url, screenshot_PNG = self.webdriver.run_webdriver(request["url"], request["redirection_timeout"], request["save_screenshot"]) if config.follow_redirection else (request["url"], None)
             # Send request
             r = session.get(url, timeout=request["timeout"], headers=request["header"])
 
@@ -99,7 +100,7 @@ class HTTPRequest(threading.Thread):
                 time_cost = float((end_time-start_time).seconds) + float((end_time-start_time).microseconds) / 1000000.0
                 query_time = r.elapsed.total_seconds() if r is not None else 0
 
-                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "start_time": start_time, "end_time": end_time, "time_cost": time_cost, "query_time": query_time,"reason": reason, "response": r}
+                return {"sub_url": request["url"], "current_url": current_url, "status_code": status_code, "start_time": start_time, "end_time": end_time, "time_cost": time_cost, "query_time": query_time,"reason": reason, "response": r, "screenshot": screenshot_PNG}
             # If retries is not 0, that means here is still in recursive function
             else:
                 return r
@@ -128,5 +129,6 @@ class HTTPRequest(threading.Thread):
                 self.q_out.put(response)
 
             self.q_in.task_done()
-
-        self.webdriver.close_webdriver()
+        
+        if self.config.follow_redirection:
+            self.webdriver.close_webdriver()
