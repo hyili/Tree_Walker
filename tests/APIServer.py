@@ -27,7 +27,7 @@ class APIServer():
         self.event = threading.Event()
 
         # Setup Flask with Route
-        self.app = Route.initialize(self.counter, self.request_queue)
+        self.app = Route.initialize(self.counter, self.request_queue, self.threads)
 
         # Create worker thread
         self.num_of_worker_threads = threads
@@ -45,7 +45,8 @@ class APIServer():
 
         print("Waiting for worker join!")
         for thread in self.threads:
-            thread.join()
+            if thread.is_alive():
+                thread.join()
 
         print("Ready to quit!")
         exit(0)
