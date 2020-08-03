@@ -24,6 +24,17 @@ else
 	exit
 fi
 
+echo "\n--> Generating default config file ..."
+cp $curr_path/tests/config/.requests.conf.default.example $curr_path/tests/config/.requests.conf.default
+
+if [ "$?" == 0 ]
+then
+	echo "--> Ok. $curr_path/tests/config/.requests.conf.default generated."
+else
+	echo "--> Looks like there is something terrible."
+	exit
+fi
+
 echo "\n--> Generating config file ..."
 cp $curr_path/tests/config/.requests.conf.example $curr_path/tests/config/.requests.conf
 

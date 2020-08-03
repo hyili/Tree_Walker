@@ -2,13 +2,13 @@
 # -*- coding: utf-8-sig -*-
 
 import os
+import sys
 import time
 import signal
 import datetime
 import threading
+import traceback
 
-from ITRI import ITRIConfigLoader
-from ITRI import ITRIOutput
 import Main
 from tool import RequestException
 
@@ -17,10 +17,6 @@ HTTP Request handler
 """
 class HTTPRequestHandler(threading.Thread):
     def __init__(self, thread_id, thread_name, threads, event, request_queue):
-        # Timer tick handler
-        signal.signal(signal.SIGALRM, self.signal_handler)
-        signal.alarm(1)
-
         threading.Thread.__init__(self)
         self.thread_id = thread_id
         self.thread_name = thread_name
@@ -33,19 +29,27 @@ class HTTPRequestHandler(threading.Thread):
     def thread_status(self):
         return self.status
 
-    def signal_handler(self, signal, frame):
-        if self.event.is_set():
-            pass
-            #Main.close()
+    def is_idle(self):
+        return self.status == 0
+
+    def is_busy(self):
+        return self.status == 1
 
     def handler(self, request, threads):
         # Record the start timestamp
         start_time = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d-%H:%M:%S")
 
         # Call Main to execute the kernel function
-        # TODO: set configargs, json
         configargs = request
-        Main.handler(configloader=ITRIConfigLoader.SQL2K5TConfig, configargs=configargs, db_handler=ITRIOutput.db_handler)
+
+        try:
+            Main.handler(configargs=configargs)
+        except Exception as e:
+            print("Worker(HTTPRequestHandler::handler()): " + str(e))
+
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback)
+            print("")
 
         # Do not need to send mail here
 

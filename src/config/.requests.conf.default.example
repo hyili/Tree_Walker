@@ -1,0 +1,83 @@
+# --------------------------------------------------------------------------------------- #
+#                                                                                         #
+# Default tag                                                                             #
+#                                                                                         #
+# --------------------------------------------------------------------------------------- #
+[DEFAULT]
+
+debug_mode=N
+
+# DEPRECATED
+#sso_id=single-sign-on_id
+
+# DEPRECATED
+#sso_passwd=single-sign-on_password
+
+search_level=0
+
+timeout=5
+
+redirection_timeout=5
+
+threshold=1
+
+is_intra=N
+
+sso_url=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
+
+target_name=ITRIWeb
+
+target_url=https://itriweb.itri.org.tw/
+
+search_domain=itri\.org\.tw
+
+# 0: for wanted 1: for unwanted
+search_flag=0
+
+ignore_status=-6
+
+retry_status=-3,-5
+
+max_retries=0
+
+search_status=200,400,401,403,404,500,503,-3,-5
+
+output_format=STDOUT,DB
+
+group_parent_url=N
+
+report_sort=STATUS_CODE
+
+follow_redirection=N
+
+# DEPRECATED DRIVER_LOCATION=/usr/local/bin/phantomjs
+driver_location=/home/pythonUser/Webdriver/chromedriver
+
+verify_certificate=N
+
+ssllab_verify_certificate=N
+
+logpath=logs/
+
+outputpath=output/
+
+type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13
+
+# context for matching, default matches nothing
+context=
+
+# steps
+steps=0
+
+# the website should be online or offline
+online_status=Y
+
+# scan or not
+is_monitor=Y
+
+incharge_uid=020202
+
+save_screenshot=N
+
+# for APIServer HTTP request args
+args=

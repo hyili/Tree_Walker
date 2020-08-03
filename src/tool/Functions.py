@@ -76,9 +76,8 @@ def factor_url(current_url, sub_url):
     if bool(re.search(pattern, sub_url)):
         return sub_url
 
-    sub_url = html.parser.HTMLParser().unescape(sub_url)
     current_url = current_url.strip()
-    sub_url = sub_url.strip()
+    sub_url = html.parser.HTMLParser().unescape(sub_url).strip()
 
     pattern = "^(.)+://"
     if not bool(re.search(pattern, current_url)):

@@ -7,6 +7,7 @@ import signal
 import logging
 import datetime
 import argparse
+import traceback
 
 import context
 import ConfigLoader
@@ -14,6 +15,10 @@ import Output
 from Request import Request
 from tool import GlobalVars
 from tool import Functions
+from tool import History
+
+from ITRI import ITRIConfigLoader
+from ITRI import ITRIOutput
 
 """
 Argument init
@@ -46,23 +51,28 @@ def arg_initialize(argv):
 """
 Parse function
 """
-def parse_funct(filename, config, db_handler):
+def parse_funct(filename, config, db_handler, enable_signal=True):
     start_time = datetime.datetime.now()
     history = {}
-    result = {"start_time": start_time, "data": history}
+    result = {"start_time": start_time, "data": history, "exception": None}
     r = Request(config=config, decode="utf-8-sig")
 
-    # Signal handler
     try:
-        signal.signal(signal.SIGINT, r.signal_handler)
-    # Do nothing in main thread
-    except:
-        pass
+        r.set_session()
+        r.initialize()
 
-    if config.depth >= 0:
-        linktexts = []
-        linktexts.append((config.target_url, config.target_name))
-        history.update(r.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
+        if enable_signal:
+            signal.signal(signal.SIGINT, r.signal_handler)
+
+        if config.depth >= 0:
+            linktexts = []
+            linktexts.append((config.target_url, config.target_name))
+            history.update(r.navigate(linktexts=linktexts, history=history, config=config, decode="utf-8-sig"))
+    except Exception as e:
+        result["exception"] = e
+
+    end_time = datetime.datetime.now()
+    result["end_time"] = end_time
     Output.output_handler(result=result, config=config, output_filename=filename, db_handler=db_handler)
     r.close()
 
@@ -70,17 +80,17 @@ def parse_funct(filename, config, db_handler):
 Handler
 - args for commandline input arguments, function call won't have this
 """
-def handler(configloader, configargs=None, args=None, db_handler=None):
+def handler(configargs=None, args=None):
     logging.basicConfig(filename="logs/error.report", filemode="a",
             format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
     # Enter from function call
     # Load configuration from self-defined DB configloader
     if args is None:
-        # configargs for APIServer input index
-        config = configloader(tag=GlobalVars.DEFAULT_DB_CONFIG_TAG, config_path=GlobalVars.DEFAULT_DB_CONFIG_PATH, args=configargs)
+        # configargs comes from HTTP
+        config = ITRIConfigLoader.QMCConfig(db_tag="ITSMDB", db_config_path=GlobalVars.DEFAULT_DB_CONFIG_PATH, file_tag="APISERVER", file_config_path=GlobalVars.DEFAULT_CONFIG_PATH, args=configargs)
         config.load_config()
-        parse_funct("APIServer-Tests", config, db_handler)
+        parse_funct(filename="APISERVER", config=config, db_handler=ITRIOutput.QMC_db_handler, enable_signal=False)
 
     # Enter from commandline
     elif args is not None:
@@ -88,14 +98,14 @@ def handler(configloader, configargs=None, args=None, db_handler=None):
         # Example: ./Main.py config DEFAULT
         if args.subparser_name == "config":
             for tag in args.tags[0:]:
-                config = configloader(tag=tag, config_path=GlobalVars.DEFAULT_CONFIG_PATH)
+                config = ConfigLoader.FileConfig(tag=tag, config_path=GlobalVars.DEFAULT_CONFIG_PATH)
                 config.load_config()
-                parse_funct(tag, config, db_handler)
+                parse_funct(filename=tag, config=config, db_handler=None)
 
         # Load configuration from commandline
         # Example: ./Main.py commandline --url https://hyili.idv.tw --depth 0
         elif args.subparser_name == "commandline":
-            config = configloader(tag=args.tag, config_path=args.config)
+            config = ConfigLoader.FileConfig(tag=args.tag, config_path=args.config)
             config.load_config()
 
             config.verify = args.verify if args.verify is not None else config.verify
@@ -106,7 +116,7 @@ def handler(configloader, configargs=None, args=None, db_handler=None):
             config.domain_url = Functions.pattern_generator(args.url)
             config.auth = args.auth if args.auth is not None else config.auth
             if config.auth:
-                print("User:", end="", flush=True)
+                print("User: ", end="", flush=True)
                 config.payload["USER"] = sys.stdin.readline()
                 config.payload["PASSWORD"] = getpass.getpass()
                 config.payload["TARGET"] = config.target_url
@@ -116,7 +126,7 @@ def handler(configloader, configargs=None, args=None, db_handler=None):
             if args.depth >= 0:
                 config.depth = args.depth
 
-            parse_funct(args.filename, config, db_handler)
+            parse_funct(filename=args.filename, config=config, db_handler=None)
 
 """
 Main function
@@ -124,7 +134,14 @@ Main function
 def main():
     argv = sys.argv
     args = arg_initialize(argv)
-    handler(configloader=ConfigLoader.FileConfig, args=args)
+    try:
+        handler(args=args)
+    except Exception as e:
+        print("Main(main())"+str(e))
+
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        traceback.print_tb(exc_traceback)
+        print("")
 
 if __name__ == "__main__":
     main()
