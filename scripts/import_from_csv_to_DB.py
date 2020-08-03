@@ -43,11 +43,11 @@ try:
 				time = datetime.datetime.strptime(line[0], "%Y/%m/%d-%H:%M:%S")
 				strtime = datetime.datetime.strftime(time, "%Y-%m-%d %H:%M:%S")
 				if service_id == 1:
-					print("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
-							[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],
-							[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],
-							[context_found], [sso_check])
-							VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" %
+					print(("INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name],\n" +
+							"[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],\n" +
+							"[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],\n" +
+							"[context_found], [sso_check])\n" +
+							"VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)") %
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "Y", "200", "0", "N", "Y"))
 					cursor.execute("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
@@ -58,11 +58,11 @@ try:
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "Y", "200", "0", "N", "Y"))
 				elif service_id == 2:
-					print("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
-							[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],
-							[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],
-							[context_found], [sso_check])
-							VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" %
+					print(("INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name],\n" +
+							"[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],\n" +
+							"[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],\n" +
+							"[context_found], [sso_check])\n" +
+							"VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)") %
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "N", "400,401,403,404,500,503,-3,-5", "0", "N", "N"))
 					cursor.execute("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
@@ -73,11 +73,11 @@ try:
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "N", "400,401,403,404,500,503,-3,-5", "0", "N", "N"))
 				elif service_id == 3:
-					print("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
-							[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],
-							[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],
-							[context_found], [sso_check])
-							VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" %
+					print(("INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name],\n" +
+							"[checked_url], [current_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],\n" +
+							"[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status], [found_level],\n" +
+							"[context_found], [sso_check])\n" +
+							"VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)") %
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "N", "200", "0", "N", "N"))
 					cursor.execute("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
@@ -88,11 +88,11 @@ try:
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[7], line[11], line[12],
 							line[13], line[14], line[15], 20, 20, "N", "200", "0", "N", "N"))
 				elif service_id == 4:
-					print("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 
-							[checked_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],
-							[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status],
-							[context_found], [sso_check])
-							VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" %
+					print(("INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name],\n" +
+							"[checked_url], [rtn_status], [spend_time], [reason], [search_level], [found_url_no],\n" +
+							"[searched_url_no], [timeout], [redirection_timeout], [is_intra], [show_status],\n" +
+							"[context_found], [sso_check])\n" +
+							"VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)") %
 							(service_id, strtime, line[1], line[3], line[2], line[4], line[5], line[6], line[7], line[8],
 							line[9], 20, 20, "N", "400,401,403,404,500,503,-3,-5", "N", "N"))
 					cursor.execute("""INSERT INTO tbl_WebCheck_history ([service_id], [check_time], [from_url], [checked_name], 

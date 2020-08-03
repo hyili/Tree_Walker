@@ -5,99 +5,60 @@
 # --------------------------------------------------------------------------------------- #
 [DEFAULT]
 
-#TODO: DB Local config
-#DEBUG_MODE=NO
 debug_mode=N
 
-# DEPRECATED
-#sso_id=single-sign-on_id
+sso_id=single-sign-on_id
 
-# DEPRECATED
-#sso_passwd=single-sign-on_password
+sso_passwd=single-sign-on_password
 
-#DEPTH=1
 search_level=0
 
-#TIMEOUT=5
 timeout=5
 
-#TIMEOUT=5
 redirection_timeout=5
 
-#THRESHOLD=1
 threshold=1
 
-#AUTH=NO
 is_intra=N
 
-#AUTH_URL_PATTERN=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 sso_url=^http(s)?\://(intersso|reverse2|itriforms)\.itri\.org\.tw/
 
 target_name=ITRIWeb
 
-#TARGET_URL=https://itriweb.itri.org.tw
-target_url=https://itriweb.itri.org.tw
+target_url=https://itriweb.itri.org.tw/
 
-#DOMAIN_URL=itriweb.itri.org.tw
 search_domain=itri\.org\.tw
 
-#TODO: 0: for wanted 1: for unwanted
-#FILTER=200,403
-#filter=403
+# 0: for wanted 1: for unwanted
 search_flag=0
 
-#IGNORE=-6
 ignore_status=-6
 
-#RETRY=-3,-5
 retry_status=-3,-5
 
-#MAX_RETRIES=0
 max_retries=0
 
-#BROKEN_LINK=200,400,401,403,404,500,503,-3,-5
 search_status=200,400,401,403,404,500,503,-3,-5
 
-#FORMAT=STDOUT
 output_format=STDOUT,DB
 
-#GROUP_PARENT_URL=NO
 group_parent_url=N
 
-#SORT=STATUS_CODE
 report_sort=STATUS_CODE
 
-#FOLLOW_REDIRECTION=NO
 follow_redirection=N
 
-#TODO: DB Local config
-#DRIVER_LOCATION=/usr/local/bin/phantomjs
+# DEPRECATED DRIVER_LOCATION=/usr/local/bin/phantomjs
 driver_location=/home/pythonUser/Webdriver/chromedriver
 
-#TODO: DB Local config
-#VERIFY_CERTIFICATE=NO
 verify_certificate=N
 
-#TODO: DB Local config
-#SSLLAB_VERIFY_CERTIFICATE=NO
 ssllab_verify_certificate=N
 
-#TODO: DB Local Config
-#LOGPATH=logs/
 logpath=logs/
 
-#TODO: DB Local Config
-#OUTPUTPATH=output/
 outputpath=output/
 
-# --------------------------------------------------------------------------------------- #
-#                                                                                         #
-# TYPE_SETTING={Type setting of csv output file}                                          #
-#                                                                                         #
-#                                                                                         #
-# --------------------------------------------------------------------------------------- #
-#TODO: DB Local Config
-#TYPE_SETTING=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
 type_setting=1,2,3,4,5,6,7,8,9,10,11,12,13
 
 # context for matching, default matches nothing
@@ -115,3 +76,6 @@ is_monitor=Y
 incharge_uid=020202
 
 save_screenshot=N
+
+# for APIServer HTTP request args
+args=
