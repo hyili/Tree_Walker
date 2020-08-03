@@ -48,15 +48,7 @@ class Request():
         self.num_of_worker_threads = config.threshold
         if config.depth == 0:
             self.num_of_worker_threads = 1
-        session = requests.Session()
-        #session.mount("https://", TLSAdapter())
-        self.sessions.append(session)
-        if config.auth:
-            (source, auth_history) = Authenticate.authenticate(session=session, config=config, decode=decode)
-            if source == "":
-                config.sso_check = False
-            if source == None:
-                raise Exception("Request: SSO failed")
+
     
         # Disable requests module warnings
         requests.packages.urllib3.disable_warnings()
@@ -64,16 +56,32 @@ class Request():
         # Initialize an event for stopping jobs that parent and children are running
         self.event = threading.Event()
     
+    """
+    Get session
+    """
+    def set_session(self):
+        self.session = requests.Session()
+        #session.mount("https://", TLSAdapter())
+        self.sessions.append(self.session)
+        if self.config.auth:
+            (source, auth_history) = Authenticate.authenticate(session=self.session, config=self.config, decode=self.decode)
+            if source is None:
+                raise Exception("Request: Access failed, SSO returns nothing. URL: " + self.config.target_url + "\n" + str(auth_history))
+
+    """
+    Initialize the worker
+    """
+    def initialize(self):
         # Initialize Worker
         for i in range(0, self.num_of_worker_threads, 1):
             # TODO: fetch out the cookies
-            new_session = copy.deepcopy(session)
+            new_session = copy.deepcopy(self.session)
             self.sessions.append(new_session)
-            thread = RequestWorker.HTTPRequest(i, str(i), self.event, new_session, config, self.history_in_queue, self.history_out_queue)
+            thread = RequestWorker.HTTPRequest(i, str(i), self.event, new_session, self.config, self.history_in_queue, self.history_out_queue)
             thread.daemon = True
             thread.start()
             self.threads.append(thread)
-    
+
     """
     Close
     """
@@ -87,7 +95,8 @@ class Request():
     
         # Join worker threads
         for thread in self.threads:
-            thread.join()
+            if thread.is_alive():
+                thread.join()
     
         # Close sessions
         for session in self.sessions:
@@ -97,7 +106,6 @@ class Request():
     Ctrl + C handler
     """
     def signal_handler(self, signal, frame):
-    
         # Catch SIGINT
         print("Got it!")
         self.close()
@@ -157,8 +165,7 @@ class Request():
                             links.append((sub_url, r.text))
                     except Exception as e:
                         if config.debug_mode:
-                            print("Request"+str(e))
-                        pass
+                            print("Request(Request:navigate()): " + str(e))
     
             # Remove some result that lists in config.ignore_code
             if history[sub_url]["status_code"] in config.ignore_code:

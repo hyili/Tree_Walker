@@ -45,7 +45,7 @@ def xml_generator(history, config, output_filename):
                 reason.set("value", str(history[log]["reason"]))
             except Exception as e:
                 if config.debug_mode:
-                    print("Output: "+str(e))
+                    print("Output(xml_generator()): " + str(e))
                 continue
         tree = etree.ElementTree(time)
         with open(config.outputpath+"/"+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
@@ -83,7 +83,7 @@ def xml_generator(history, config, output_filename):
                 reason.set("value", str(log["reason"]))
             except Exception as e:
                 if config.debug_mode:
-                    print("Output: "+str(e))
+                    print("Output(xml_generator()): " + str(e))
                 continue
         tree = etree.ElementTree(time)
         with open(config.outputpath+"/"+output_filename+".xml", "ab", encoding="utf-8-sig") as xmlfile:
@@ -109,7 +109,7 @@ def csv_generator(history, config, output_filename):
                 writer.writeheader()
             for log in history:
                 try:
-                    # TODO: Group parent_url
+                    # Group parent_url
                     if config.group_parent_url:
                         fielddata = [date_time, str(history[log]["parent_url"]), str(history[log]["link_url"]), str(history[log]["link_name"]), str(history[log]["current_url"]), str(history[log]["ssl_grade"]), str(history[log]["ssl_report_url"]), str(history[log]["status_code"]), str(history[log]["time_cost"]), str(history[log]["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
                         row = dict((formatednames[i], formateddata[i]) for i in range(0, len(formatednames)))
@@ -121,7 +121,7 @@ def csv_generator(history, config, output_filename):
                             writer.writerow(row)
                 except Exception as e:
                     if config.debug_mode:
-                        print("Output: "+str(e))
+                        print("Output(csv_generator()): " + str(e))
                     continue
             if config.depth != 0:
                 pass
@@ -136,7 +136,7 @@ def csv_generator(history, config, output_filename):
                 writer.writeheader()
             for log in sort_by_status:
                 try:
-                    # TODO: Group parent_url
+                    # Group parent_url
                     if config.group_parent_url:
                         fielddata = [date_time, str(log["parent_url"]), str(log["link_url"]), str(log["link_name"]), str(log["current_url"]), str(log["ssl_grade"]), str(log["ssl_report_url"]), str(log["status_code"]), str(log["time_cost"]), str(log["reason"]), str(config.depth), str(GlobalVars.total_output_links), str(GlobalVars.total_links)]
                         formateddata = [fielddata[i-1] for i in config.type_setting]
@@ -156,7 +156,7 @@ def csv_generator(history, config, output_filename):
                             writer.writerow(row)
                 except Exception as e:
                     if config.debug_mode:
-                        print("Output: "+str(e))
+                        print("Output(csv_generator()): " + str(e))
                     continue
             if config.depth != 0:
                 pass
@@ -172,14 +172,29 @@ def json_generator():
 STDOUT Generator
 """
 def stdout_generator(result, config):
-    muted_result = result.copy()
-    for key in muted_result["data"]:
-        if config.save_screenshot:
-            muted_result["data"][key]["screenshot"] = "#muted"
+    for key in result["data"]:
+        if config.follow_redirection and config.save_screenshot:
+            result["data"][key]["screenshot"] = "#muted"
 
-    print("\n"+str(muted_result["data"][config.target_url]["status_code"]))
-    sys.stdout.buffer.write(str(muted_result).encode("utf-8-sig"))
-    #print(str(muted_result)) # Need to add PYHTONIOENCODING=utf-8-sig
+    if result["exception"] is not None:
+        sys.stdout.buffer.write(("Output(stdout_generator()): " + str(result["exception"])).encode("utf-8-sig"))
+    else:
+        print("\n"+str(result["data"][config.target_url]["status_code"]))
+        sys.stdout.buffer.write(str(result).encode("utf-8-sig"))
+        #print(str(result)) # Need to add PYHTONIOENCODING=utf-8-sig to prevent SHELL encoding issue
+
+    print("")
+
+"""
+Logging
+"""
+def log_generator(result, config):
+    if "counter" in config.args:
+        with open("logs/response", "ab") as f:
+            if result["exception"] is not None:
+                f.write((str(result["end_time"])+" "+str(config.args["counter"])+" "+str(result["exception"])+"\n").encode("utf-8-sig"))
+            else:
+                f.write((str(result["end_time"])+" "+str(config.args["counter"])+" "+str(result)+"\n").encode("utf-8-sig"))
 
 """
 Output handler using specified format
@@ -201,14 +216,16 @@ def output_handler(result, config, output_filename, db_handler):
             # Not implement yet
             json_generator()
 
-    if "STDOUT" in config.output_format:
-        stdout_generator(result, config)
-
     if "DB" in config.output_format:
-        # TODO: Not implement yet
         try:
             db_handler(result, config)
         except Exception as e:
-            raise RequestException.UnknownException("""The function called has unknown exception.
-                    Reason: %s""" % (str(e)))
+            raise RequestException.UnknownException(("The function called has unknown exception.\n" +
+                    "Reason: %s") % (str(e)))
 
+    # This must be in the last one of the order
+    if "STDOUT" in config.output_format:
+        stdout_generator(result, config)
+        log_generator(result, config)
+
+    print("", flush=True)

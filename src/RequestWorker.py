@@ -32,6 +32,8 @@ class HTTPRequest(threading.Thread):
 
     def send_get_request(self, session, config, request, retries=0):
         current_url = ""
+        url = ""
+        screenshot_PNG = None
         r = None
 
         try:
@@ -41,6 +43,7 @@ class HTTPRequest(threading.Thread):
 
             # Let Webdriver handles the redirection
             url, screenshot_PNG = self.webdriver.run_webdriver(request["url"], request["redirection_timeout"], request["save_screenshot"]) if config.follow_redirection else (request["url"], None)
+
             # Send request
             r = session.get(url, timeout=request["timeout"], headers=request["header"])
 
@@ -54,37 +57,37 @@ class HTTPRequest(threading.Thread):
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         except requests.exceptions.Timeout as e:
             status_code = -3
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         except requests.exceptions.TooManyRedirects as e:
             status_code = -4
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         except requests.exceptions.ConnectionError as e:
             status_code = -5
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         except requests.exceptions.InvalidSchema as e:
             status_code = -6
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         except Exception as e:
             status_code = -7
             reason = e
             r = None
             if config.debug_mode:
-                print("Request: "+str(e))
+                print("RequestWorker(HTTPRequest::send_get_request()): " + str(e))
         finally:
             # If the result status_code is listed in config.search_status, then prepare for retry recursively
             if status_code in config.search_status:

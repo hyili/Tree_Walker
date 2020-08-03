@@ -30,8 +30,8 @@ class Config():
         _target_name = self.load("target_name")
         _target_url = self.load("target_url")
         _current_url = _target_url
-        _user = "USER"
-        _password = "PASSWORD"
+        _user = self.load("sso_id")
+        _password = self.load("sso_passwd")
         _header = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2793.0 Safari/537.36"}
         _depth = self.load("search_level", int)
         _timeout = self.load("timeout", int)
@@ -53,11 +53,14 @@ class Config():
         _outputpath = self.load("outputpath")
         _type_setting = self.load("type_setting")
         _context = self.load("context")
-        _sso_check = True
+        _sso_check = None
         _steps = self.load("steps")
 #        _online_status = self.load("online_status")
 #        _is_monitor = self.load("is_monitor")
         _save_screenshot = self.load("save_screenshot")
+
+        # for APIServer HTTP request args
+        _args = self.load("args")
 
         # Preprocess the loaded config
         self.debug_mode = True if _debug_mode == "Y" or _debug_mode == "y" else False
@@ -101,49 +104,52 @@ class Config():
 #        self.is_monitor = True if _is_monitor == "Y" or _is_monitor == "y" else False
         self.save_screenshot = True if _save_screenshot == "Y" or _save_screenshot == "y" else False
 
+        # for APIServer HTTP request args
+        self.args = dict() if _args == "" else _args
+
 # read config from file, Default method
 class FileConfig(Config):
     def __init__(self, tag, config_path):
-        self.tag = tag
-        self.config_path = config_path
+        self._tag = tag
+        self._config_path = config_path
 
         try:
             self.default_config = configparser.ConfigParser()
             self.default_config.read(GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH)
             self.default_config.sections()
         except Exception as e:
-            raise RequestException.FileException("""Some error occurred when reading from default config.
-                    Path: %s
-                    Tag: %s
-                    Reason: %s""" % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
+            raise RequestException.FileException(("Some error occurred when reading from default config.\n" +
+                    "Path: %s\n" +
+                    "Tag: %s\n" +
+                    "Reason: %s") % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
         
         try:
             self.config = configparser.ConfigParser()
-            self.config.read(self.config_path)
+            self.config.read(self._config_path)
             self.config.sections()
         except Exception as e:
-            raise RequestException.FileException("""Some error occurred when reading from config.
-                    Path: %s
-                    Tag: %s
-                    Reason: %s""" % (self.config_path, self.tag, str(e)))
+            raise RequestException.FileException(("Some error occurred when reading from config.\n" +
+                    "Path: %s\n" +
+                    "Tag: %s\n" +
+                    "Reason: %s") % (self._config_path, self._tag, str(e)))
 
     # Function to load config, if option not exist in target tag, load from DEFAULT tag instead
     def load(self, option, funct=None):
         try:
-            result = self.config.get(self.tag, option)
+            result = self.config.get(self._tag, option)
         except configparser.NoSectionError as e:
-            raise RequestException.FileException("""Some error occurred when reading from config.
-                    Path: %s
-                    Tag: %s
-                    Reason: %s""" % (self.config_path, self.tag, str(e)))
+            raise RequestException.FileException(("Some error occurred when reading from config.\n"
+                    "Path: %s\n" +
+                    "Tag: %s\n" +
+                    "Reason: %s") % (self._config_path, self._tag, str(e)))
         except:
             try:
                 result = self.default_config.get(GlobalVars.DEFAULT_CONFIG_TAG, option)
             except Exception as e:
-                raise RequestException.FileException("""Some error occurred when reading from config.
-                        Path: %s
-                        Tag: %s
-                        Reason: %s""" % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
+                raise RequestException.FileException(("Some error occurred when reading from config.\n" +
+                        "Path: %s\n" +
+                        "Tag: %s\n" +
+                        "Reason: %s") % (GlobalVars.DEFAULT_DEFAULT_CONFIG_PATH, GlobalVars.DEFAULT_CONFIG_TAG, str(e)))
 
         if funct is None:
             return result

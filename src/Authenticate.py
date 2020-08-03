@@ -43,14 +43,8 @@ class Authenticate():
             # Redirect to SSO page
             r = self.session.get("https://itriforms.itri.org.tw/itrisso_login.fcc", timeout=config.timeout, headers=config.header, verify=config.verify)
 
-            # Domain verification, not sso url verification
-            if (re.search(config.search_domain_pattern, config.target_url)):
-                # Make a request with SSO account and password in payload
-                r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
-                if (re.search(config.auth_url_pattern, r.url)):
-                    raise Exception("Login Failed")
-            else:
-                raise Exception("It's only for ITRI Single Sign On lol~")
+            # Make a request with SSO account and password in payload
+            r = self.session.post(r.url, timeout=config.timeout, headers=config.header, data=config.payload, verify=True)
 
             # Set encoding code and history
             r.encoding = Functions.detect_encoding(r)
@@ -59,32 +53,32 @@ class Authenticate():
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-2, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         except requests.exceptions.Timeout as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-3, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         except requests.exceptions.TooManyRedirects as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-4, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         except requests.exceptions.ConnectionError as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-5, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         except requests.exceptions.InvalidSchema as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-6, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         except Exception as e:
             self.history = History.history_handler(history=self.history, url=config.target_url, status_code=-7, link_name=config.target_name, link_url=config.target_url, reason=e, depth=0)
             r = None
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(Authenticate::authenticate()): " + str(e))
         finally:
             # If status_code is in config.search_status, preparing to retry recursively
             if self.history[config.target_url]["status_code"] in config.search_status:
@@ -116,9 +110,12 @@ def authenticate(session, config, decode=None):
 
     # Initialize return value
     if response is None:
-        ret_val = (None, history)
-        return ret_val
+        config.sso_check = False
+        return (None, history)
     else:
+        config.sso_check = True
+        if (re.search(config.auth_url_pattern, response.url)):
+            raise Exception("SSO Login Failed")
         ret_val = ("", history)
 
     # Check target_url source page is text format, not a file or others
@@ -129,7 +126,7 @@ def authenticate(session, config, decode=None):
                 ret_val = (response.text, history)
         except Exception as e:
             if config.debug_mode:
-                print("Authenticate: "+str(e))
+                print("Authenticate(authenticate()): " + str(e))
 
     # Remove the result which status_code is listed in config.ignore_code
     if history[config.target_url]["status_code"] in config.ignore_code:
